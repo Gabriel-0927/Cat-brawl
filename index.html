@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>貓咪大亂鬥 V9.9 - 全螢幕修正</title>
+    <!-- 引入 pako 壓縮函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
         /* CSS樣式 */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; user-select: none; }
@@ -96,11 +98,10 @@
         }
         #current-deck-container h3, #owned-units-container h3 { margin: 0 0 10px 0; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; }
         
-        /* ++ MODIFIED: 縮減上方隊伍欄位的尺寸 ++ */
         #current-deck-display { 
             display: flex; 
             gap: 10px; 
-            min-height: 110px; /* MODIFIED: 減少最小高度 */
+            min-height: 110px; 
             background-color: rgba(255,255,255,0.7); 
             border-radius: 8px; 
             padding: 10px; 
@@ -108,15 +109,13 @@
             align-items: center; 
             border: 2px dashed #95a5a6; 
         }
-        /* ++ NEW: 新增規則來縮小上方的卡片和空位 ++ */
         #current-deck-display .unit-card,
         #current-deck-display .deck-slot {
             height: 85px;
             width: 65px;
             flex-shrink: 0;
-            aspect-ratio: unset; /* 取消固定的長寬比，讓我們可以自訂 */
+            aspect-ratio: unset;
         }
-        /* ++ NEW: 新增規則來縮小上方卡片內的圖示和文字 ++ */
         #current-deck-display .unit-card .card-icon {
             font-size: 30px;
         }
@@ -530,7 +529,7 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- HTML 部分保持不變 -->
+        <!-- HTML 部分 -->
         <button id="fullscreen-btn" title="全螢幕">⛶</button>
         <audio id="bgm" loop></audio>
         
@@ -649,9 +648,8 @@
 
         <div id="toast-container"></div>
     </div>
-
 <script>
-    // JavaScript 程式碼與上一版完全相同，包含了修正後的匯出/匯入功能
+    // JavaScript 程式碼
     document.addEventListener('DOMContentLoaded', () => {
         // ... (省略所有常數和函數定義，它們和上一版完全一樣)
         const ALL_UNITS = { 'cat_basic': { name: '小貓', icon: '😼', rarity: 'N', hp: 100, atk: 10, range: 40, speed: 2, cost: 50 }, 'cat_tank': { name: '坦克貓', icon: '😾', rarity: 'N', hp: 300, atk: 5, range: 35, speed: 1, cost: 75 }, 'cat_crusader': { name: '十字軍貓', icon: '🛡️', rarity: 'N', hp: 250, atk: 12, range: 40, speed: 1.2, cost: 100, blockChance: 0.2 }, 'cat_ninja': { name: '忍者貓', icon: '🥷', rarity: 'N', hp: 80, atk: 15, range: 40, speed: 3, cost: 60 }, 'cat_axe': { name: '斧頭貓', icon: '😺', rarity: 'R', hp: 150, atk: 25, range: 45, speed: 1.5, cost: 120 }, 'cat_magic': { name: '法師貓', icon: '🧙', rarity: 'R', hp: 90, atk: 20, range: 200, speed: 1.2, cost: 200 }, 'cat_freeze': { name: '冷凍貓', icon: '🧊', rarity: 'R', hp: 120, atk: 15, range: 150, speed: 1.5, cost: 280, freeze: { chance: 0.3, duration: 2000 } }, 'cat_samurai': { name: '武士貓', icon: '👺', rarity: 'R', hp: 200, atk: 30, range: 45, speed: 1.8, cost: 180, crit: { chance: 0.1, multiplier: 3 } }, 'cat_miner': { name: '礦工貓', icon: '⛏️', rarity: 'R', hp: 180, atk: 20, range: 40, speed: 1.5, cost: 220, moneyOnKill: { chance: 0.25, amount: 100 } }, 'cat_king': { name: '獅王貓', icon: '🦁', rarity: 'SSR', hp: 500, atk: 50, range: 60, speed: 1, cost: 400 }, 'cat_dragon': { name: '龍騎士貓', icon: '🐉', rarity: 'SSR', hp: 350, atk: 70, range: 150, speed: 1.5, cost: 550, splashRange: 50 }, 'cat_healer': { name: '治癒貓', icon: '🙏', rarity: 'SSR', hp: 200, atk: 5, range: 120, speed: 1.2, cost: 300, heal: 20 }, 'cat_valkyrie': { name: '女武神貓', icon: '💃', rarity: 'SSR', hp: 400, atk: 40, range: 50, speed: 3, cost: 600, attackInterval: 1000 }, 'cat_gunslinger': { name: '槍手貓', icon: '🤠', rarity: 'SSR', hp: 300, atk: 25, range: 160, speed: 1.5, cost: 500, multiHit: { count: 3, delay: 150 } }, 'cat_bard': { name: '吟遊詩人貓', icon: '🎵', rarity: 'SSR', hp: 250, atk: 0, range: 150, speed: 1.2, cost: 450, attackBuff: { radius: 150, multiplier: 1.2, duration: 5000 } }, 'cat_mecha': { name: '機械貓神', icon: '🤖', rarity: 'UR', hp: 1200, atk: 150, range: 180, speed: 2, cost: 1200, splashRange: 70 }, 'cat_timelord': { name: '時空貓', icon: '⏳', rarity: 'UR', hp: 800, atk: 80, range: 100, speed: 1, cost: 1500, timeStop: { chance: 0.15, duration: 2500 } }, 'cat_cosmic_dragon': { name: '宇宙龍貓', icon: '☄️', rarity: 'UR', hp: 1500, atk: 180, range: 200, speed: 1, cost: 1800, splashRange: 80, weaken: { chance: 0.3, multiplier: 0.5, duration: 5000 } },'cat_assassin': { name: '刺客貓', icon: '🗡️', rarity: 'R', hp: 100, atk: 10, range: 40, speed: 3.5, cost: 160, multiHit: { count: 2, delay: 100 } },'cat_paladin': { name: '聖騎士貓', icon: '⚜️', rarity: 'SSR', hp: 600, atk: 60, range: 130, speed: 1, cost: 650, splashRange: 30, weaken: { chance: 0.2, multiplier: 0.7, duration: 3000 } },'cat_demolitionist': { name: '爆破專家貓', icon: '💣', rarity: 'SSR', hp: 250, atk: 100, range: 160, speed: 1.2, cost: 700, splashRange: 120 },'cat_sun_god': { name: '太陽神貓', icon: '☀️', rarity: 'UR', hp: 2000, atk: 250, range: 180, speed: 0.8, cost: 2500, waveAttack: { chance: 0.3, distance: 250 } } };
@@ -757,62 +755,39 @@
             handleDailyReset();
         }
         
-        function fallbackCopyTextToClipboard(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.top = '0';
-            textArea.style.left = '0';
-            textArea.style.width = '2em';
-            textArea.style.height = '2em';
-            textArea.style.padding = '0';
-            textArea.style.border = 'none';
-            textArea.style.outline = 'none';
-            textArea.style.boxShadow = 'none';
-            textArea.style.background = 'transparent';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    alert('存檔碼已複製到剪貼簿！');
-                } else {
-                    prompt('自動複製失敗，請手動長按、全選並複製以下文字：', text);
-                }
-            } catch (err) {
-                prompt('自動複製失敗，請手動長按、全選並複製以下文字：', text);
-            }
-            document.body.removeChild(textArea);
-        }
-
+        // ++ MODIFIED: 使用 pako 壓縮來匯出精簡的存檔碼 ++
         function exportSave() {
             const stateString = localStorage.getItem(SAVE_KEY);
             if (!stateString) {
                 alert('找不到存檔！');
                 return;
             }
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(stateString).then(() => {
-                    alert('存檔碼已複製到剪貼簿！請將它貼到記事本中妥善保管。');
-                }).catch(err => {
-                    console.warn('自動複製失敗，啟用備用方案:', err);
-                    fallbackCopyTextToClipboard(stateString);
-                });
-            } else {
-                console.warn('不支援 Clipboard API，啟用備用方案。');
-                fallbackCopyTextToClipboard(stateString);
+            try {
+                // 使用 pako.deflate 進行壓縮
+                const compressed = pako.deflate(stateString, { to: 'string' });
+                // 將壓縮後的二進位字串轉換為 Base64，使其更適合複製
+                const encodedSave = btoa(compressed);
+                
+                prompt('請手動長按、全選並複製以下存檔碼：', encodedSave);
+
+            } catch (e) {
+                alert('產生存檔碼時發生錯誤！');
+                console.error("匯出失敗:", e);
             }
         }
 
+        // ++ MODIFIED: 匯入時，先 Base64 解碼，再用 pako 解壓縮 ++
         function importSave() {
-            const stateString = prompt('請貼上您的存檔碼：');
-            if (stateString) {
+            const encodedString = prompt('請貼上您的存檔碼：');
+            if (encodedString && encodedString.trim() !== '') {
                 try {
-                    const tempState = JSON.parse(stateString);
+                    const compressed = atob(encodedString);
+                    const decodedString = pako.inflate(compressed, { to: 'string' });
+                    const tempState = JSON.parse(decodedString);
+                    
                     if (tempState && tempState.catFood !== undefined && tempState.version) {
                         if (confirm('偵測到有效的存檔。匯入將會覆蓋目前的遊戲進度，確定要繼續嗎？')) {
-                            localStorage.setItem(SAVE_KEY, stateString);
+                            localStorage.setItem(SAVE_KEY, decodedString);
                             alert('匯入成功！遊戲將會重新載入。');
                             location.reload();
                         }
@@ -820,7 +795,7 @@
                         alert('存檔碼格式錯誤！');
                     }
                 } catch (err) {
-                    alert('匯入失敗！存檔碼可能已損毀。');
+                    alert('匯入失敗！存檔碼無效或已損毀。');
                     console.error('匯入錯誤:', err);
                 }
             }
