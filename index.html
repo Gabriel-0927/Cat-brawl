@@ -1,0 +1,813 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>貓咪大亂鬥 V9.9 - 全螢幕修正</title>
+    <style>
+        /* CSS樣式 (保持不變) */
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; user-select: none; }
+        #game-container { width: 800px; height: 550px; background-color: #fff; border: 2px solid #333; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); position: relative; overflow: hidden; }
+        #game-container:fullscreen {
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            border: none;
+        }
+        .screen { width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: none; flex-direction: column; align-items: center; box-sizing: border-box; padding: 20px; }
+        .screen.active { display: flex; }
+        @keyframes hit-effect-anim { from { transform: scale(1.5); opacity: 1; } to { transform: scale(2.5); opacity: 0; } }
+        @keyframes heal-effect-anim { 0% { opacity: 1; transform: translateY(0px) scale(1); } 100% { opacity: 0; transform: translateY(-20px) scale(1.2); } }
+        @keyframes gacha-pulse { from { transform: scale(0.9); box-shadow: 0 0 30px 10px #8e2de2; } to { transform: scale(1.1); box-shadow: 0 0 50px 20px #4a00e0; } }
+        @keyframes gacha-ssr-pulse { 0% { border-color: #f1c40f; } 50% { border-color: #fff; } 100% { border-color: #f1c40f; } }
+        @keyframes gacha-ur-rainbow { 0% { border-color: #ff3c3c; box-shadow: 0 0 40px #ff3c3c; } 25% { border-color: #fff252; box-shadow: 0 0 40px #fff252; } 50% { border-color: #3cb0ff; box-shadow: 0 0 40px #3cb0ff; } 75% { border-color: #d94dff; box-shadow: 0 0 40px #d94dff; } 100% { border-color: #ff3c3c; box-shadow: 0 0 40px #ff3c3c; } }
+        @keyframes level-up-anim { 0% { opacity: 1; transform: translateY(0) scale(1.2); } 100% { opacity: 0; transform: translateY(-30px) scale(1.5); } }
+        @keyframes time-stop-anim { 0% { backdrop-filter: invert(0) sepia(0); } 50% { backdrop-filter: invert(1) sepia(100%); } 100% { backdrop-filter: invert(0) sepia(0); } }
+        @keyframes blink-anim { 50% { opacity: 0.3; } }
+        @keyframes freeze-in-anim { from { transform: translate(-50%, -50%) scale(0.5) rotate(-90deg); opacity: 0; } to { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.8; } }
+        .back-button { position: absolute; top: 20px; left: 20px; font-size: 16px; padding: 8px 15px; cursor: pointer; background: #6c7a89; color: white; border-radius: 8px; border: none; border-bottom: 3px solid #4d5a68; z-index: 101; transition: all 0.1s ease-in-out; }
+        .back-button:hover { background: #8d99ae; }
+        .back-button:active { transform: translateY(2px); border-bottom-width: 1px; }
+        #reset-game-button { font-size: 16px; padding: 10px 20px; background-color: #c0392b; border-bottom-color: #962d22; width: 100%; margin-top: 15px; }
+        #reset-game-button:hover { background-color: #e74c3c; }
+        .hub-button { font-size: 20px; font-weight: bold; padding: 12px 25px; margin: 5px; border-radius: 12px; cursor: pointer; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); background: linear-gradient(145deg, #5ea5e6, #3b8cd0); border: none; border-bottom: 4px solid #2a6f97; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.15s ease; position: relative; }
+        .hub-button:hover { transform: translateY(-3px); box-shadow: 0 5px 10px rgba(0,0,0,0.3); }
+        .hub-button:active { transform: translateY(1px); border-bottom-width: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .hub-button.disabled { background: #95a5a6; border-bottom-color: #7f8c8d; cursor: not-allowed; transform: none; box-shadow: none; }
+        .notification-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; display: none; justify-content: center; align-items: center; font-weight: bold; border: 2px solid white; }
+        #start-screen { background: #2c3e50; justify-content: center; color: white; cursor: pointer; }
+        #start-screen-text { font-size: 24px; animation: blink-anim 2s infinite; }
+        #hub-screen { background: linear-gradient(135deg, #a8d0e6, #f76c6c); justify-content: center; }
+        #hub-screen h1 { font-size: 48px; color: white; text-shadow: 2px 2px 4px #333; margin-bottom: 30px;}
+        #hub-main-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 0px; max-width: 700px; }
+        #top-bar { position: absolute; top: 15px; right: 15px; display: flex; align-items: center; gap: 10px; z-index: 5; }
+        .resource-display { font-size: 18px; font-weight: bold; background-color: rgba(255,255,255,0.9); color: #333; padding: 8px 12px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        #settings-button { font-size: 24px; cursor: pointer; color: white; text-shadow: 1px 1px 3px black; margin-right: 10px; }
+        #settings-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+        #settings-panel { background: white; padding: 25px; border-radius: 10px; width: 350px; box-shadow: 0 0 20px rgba(0,0,0,0.4); }
+        #settings-panel h2 { margin-top: 0; text-align: center; }
+        .settings-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .settings-row label { font-size: 18px; }
+        #volume-slider { width: 60%; }
+        #stage-select-screen { justify-content: center; background-color: #eef9bf; }
+        #stage-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-height: 400px; overflow-y: auto; padding: 10px; }
+        .stage-button { width: 150px; height: 130px; background: linear-gradient(to top, #6a994e, #a7c957); color: white; border: none; border-bottom: 4px solid #386641; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; align-items: center; transition: all 0.2s ease; text-shadow: 1px 1px 1px rgba(0,0,0,0.3); padding: 10px 5px; box-sizing: border-box; }
+        .stage-button:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.2); }
+        .stage-button h3 { margin: 0; font-size: 16px; }
+        .stage-reward { font-size: 12px; }
+        .stage-drops { font-size: 11px; margin-top: 4px; background: rgba(0,0,0,0.2); padding: 2px 5px; border-radius: 5px; }
+        #gacha-screen { justify-content: center; align-items: center; background: linear-gradient(180deg, #1e3c72, #2a5298); }
+        .gacha-view { width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .gacha-view.active { display: flex; }
+        .pool-selection-container { display: flex; justify-content: center; align-items: stretch; }
+        .pool-selection-button { position: relative; width: 250px; height: auto; margin: 0 20px; border-radius: 20px; border: 5px solid white; cursor: pointer; transition: all 0.3s ease; color: white; text-align: center; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        .pool-selection-button:hover { transform: translateY(-10px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        #normal-pool-btn { background: linear-gradient(145deg, #2980b9, #6dd5fa); }
+        .pool-title { font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+        .pool-desc { font-size: 14px; margin-top: 10px; flex-grow: 1; }
+        #limited-pool-rateup { font-size: 13px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 5px; }
+        #limited-pool-countdown { font-size: 18px; font-weight: bold; color: #f1c40f; margin-top: 15px; padding: 5px 10px; background-color: rgba(0,0,0,0.3); border-radius: 8px; }
+        .pool-rateup-icon { font-size: 80px; }
+        .gacha-card-container { display: flex; flex-direction: column; align-items: center; }
+        .gacha-card-feedback { margin-top: 4px; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 5px; color: white; }
+        .feedback-new { background-color: #e67e22; }
+        .feedback-dupe { background-color: #27ae60; }
+        #gacha-results { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 80%; min-height: 150px; margin-top: 20px; padding: 10px; background-color: rgba(255,255,255,0.1); border-radius: 10px; }
+        #gacha-pull-buttons button { background: linear-gradient(145deg, #9b59b6, #8e44ad); border-bottom-color: #6c3483; }
+        #gacha-current-food { position: absolute; top: 20px; right: 20px; font-size: 18px; font-weight: bold; background-color: rgba(0,0,0,0.3); color: white; padding: 8px 12px; border-radius: 10px; }
+        #gacha-animation-overlay { display: none; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); z-index: 100; }
+        #gacha-gate { width: 250px; height: 250px; border-radius: 50%; background-color: #4a00e0; animation: gacha-pulse 2s infinite alternate; }
+        #gacha-gate.ssr-mode { border: 5px solid #f1c40f; animation: gacha-ssr-pulse 1s infinite; }
+        #gacha-gate.ur-mode { border: 10px solid white; animation: gacha-ur-rainbow 2s infinite linear; }
+        #collection-screen { justify-content: flex-start; align-items: flex-start; background-color: #e0f7fa; padding: 60px 20px 20px 20px; }
+        #deck-management-area { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #current-deck-container h3, #owned-units-container h3 { margin: 0 0 10px 0; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; }
+        #owned-units-container h3 { margin-top: 15px; }
+        #current-deck-display { display: flex; gap: 10px; min-height: 130px; background-color: rgba(255,255,255,0.7); border-radius: 8px; padding: 10px; overflow-x: auto; align-items: center; border: 2px dashed #95a5a6; }
+        .deck-slot { width: 80px; height: 100px; background-color: rgba(0,0,0,0.1); border-radius: 8px; flex-shrink: 0; }
+        #owned-units-grid {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 140px;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 8px;
+        }
+        #owned-units-grid .unit-card {
+            flex-shrink: 0;
+            height: 100px;
+        }
+        .unit-card { aspect-ratio: 3/4; border: 2px solid; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+        .unit-card:hover { transform: scale(1.05); }
+        .unit-card.in-deck { border-color: #27ae60; box-shadow: 0 0 8px #27ae60; }
+        .unit-card.in-deck::after { content: '✓'; position: absolute; bottom: 5px; right: 5px; background-color: #2ecc71; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+        .card-icon { font-size: 36px; }
+        .card-name { font-size: 12px; font-weight: bold; }
+        .card-level { position: absolute; top: 2px; right: 4px; font-size: 12px; background-color: #e74c3c; color: white; padding: 1px 4px; border-radius: 5px; }
+        #toggle-upgrade-mode-btn { float: right; font-size: 14px; padding: 4px 8px; cursor: pointer; border: 1px solid #95a5a6; background-color: #ecf0f1; border-radius: 5px; transition: all 0.2s; margin-left: 10px; }
+        #toggle-upgrade-mode-btn:hover { background-color: #bdc3c7; }
+        #toggle-upgrade-mode-btn.active { background-color: #f1c40f; color: #333; border-color: #c8a20e; box-shadow: 0 0 8px rgba(241, 196, 15, 0.7); }
+        #owned-units-grid.upgrade-mode-active .unit-card { cursor: help; }
+        .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 200; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); width: 400px; text-align: center; position: relative; }
+        #modal-close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #aaa; }
+        #modal-close-btn:hover { color: #333; }
+        #modal-unit-name { margin-top: 0; }
+        #modal-unit-icon { font-size: 80px; margin: 10px 0; }
+        #modal-stats { text-align: left; background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        #modal-stats p { margin: 8px 0; }
+        #modal-upgrade-btn { width: 100%; padding: 12px; font-size: 18px; font-weight: bold; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; background: linear-gradient(145deg, #2ecc71, #27ae60); border-bottom: 3px solid #1e8449; }
+        #modal-upgrade-btn:hover:not(.disabled) { transform: translateY(-2px); }
+        #modal-upgrade-btn:active:not(.disabled) { transform: translateY(1px); border-bottom-width: 1px; }
+        #modal-upgrade-btn.disabled { background: #95a5a6; border-bottom-color: #7f8c8d; cursor: not-allowed; }
+        #modal-level-up-effect { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); font-size: 24px; font-weight: bold; color: #f1c40f; text-shadow: 1px 1px 2px black; animation: level-up-anim 1s forwards; pointer-events: none; }
+        #battle-screen { padding: 0; justify-content: flex-start; position: relative;}
+        #battlefield { 
+            width: 100%; 
+            flex-grow: 1; /* 取代固定的 height: 430px */
+            position: relative; 
+            transition: background 0.5s ease-in-out; 
+        }
+        .unit { position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; font-size: 30px; transition: left 0.1s linear; z-index: 2; }
+        .unit.frozen { filter: brightness(0.8) sepia(100%) hue-rotate(180deg); }
+        .unit.frozen::after {
+            content: '🧊';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            font-size: 30px;
+            z-index: 3;
+            text-shadow: 0 0 10px #3498db;
+            opacity: 0.8;
+            animation: freeze-in-anim 0.3s ease-out forwards;
+            pointer-events: none;
+        }
+        .unit.blocking::after { content: '🛡️'; position: absolute; top: -10px; font-size: 20px; animation: hit-effect-anim 0.3s forwards; }
+        .unit.weakened::before { content: '↓'; color: #e74c3c; font-weight: bold; position: absolute; top: -15px; font-size: 24px; text-shadow: 1px 1px 2px black; }
+        .unit.buffed::before { content: '↑'; color: #f1c40f; font-weight: bold; position: absolute; top: -15px; font-size: 24px; text-shadow: 1px 1px 2px black; }
+        #battle-ui { width: 100%; height: 120px; background-color: #34495e; color: white; display: flex; flex-shrink: 0; }
+        #battle-info-panel { width: 180px; padding: 10px; font-size: 16px; display: flex; flex-direction: column; justify-content: space-around; box-sizing: border-box; }
+        #upgrade-money-btn { width: 100%; padding: 8px; font-size: 14px; background: #f1c40f; color: #333; border: none; border-bottom: 3px solid #c8a20e; border-radius: 5px; cursor: pointer; transition: all 0.1s ease; }
+        #upgrade-money-btn:hover:not(.disabled) { background: #f39c12; }
+        #upgrade-money-btn:active:not(.disabled) { transform: translateY(2px); border-bottom-width: 1px; }
+        #upgrade-money-btn.disabled { background-color: #95a5a6; border-bottom-color: #7f8c8d; cursor: not-allowed; }
+        #deployment-bar { flex-grow: 1; display: flex; align-items: center; overflow-x: auto; padding: 0 10px; gap: 8px; }
+        .deploy-button { background: linear-gradient(to top, #e0e0e0, #ffffff); color: #333; border: 1px solid #b0b0b0; border-bottom: 3px solid #999; border-radius: 8px; padding: 5px; width: 80px; height: 95px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: center; cursor: pointer; position: relative; transition: all 0.15s ease; }
+        .deploy-button:hover:not(.disabled) { border-color: #3498db; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .deploy-button.disabled { filter: grayscale(0.8); cursor: not-allowed; background: #ccc; }
+        #battle-controls { display: flex; flex-direction: row; justify-content: center; align-items: center; padding: 0 10px; gap: 10px; }
+        #speed-toggle-btn { width: 60px; height: 60px; font-size: 24px; border-radius: 50%; border: 2px solid white; background-color: #2c3e50; color: white; cursor: pointer; }
+        .base { width: 100px; height: 150px; position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+        #player-base { left: 0; } #enemy-base { right: 0; }
+        .base-icon { font-size: 80px; }
+        .health-bar { width: 80px; height: 10px; background-color: #ccc; border: 1px solid #333; border-radius: 3px; position: relative; overflow: hidden; }
+        .health-bar-inner { height: 100%; background-color: #2ecc71; transition: width 0.3s; }
+        .unit-health-bar { width: 40px; height: 5px; background-color: #ccc; border-radius: 2px; overflow: hidden; }
+        .unit-health-bar-inner { width: 100%; height: 100%; background-color: red; }
+        .attack-effect { position: absolute; font-size: 24px; pointer-events: none; z-index: 5; animation: hit-effect-anim 0.3s forwards; }
+        .heal-effect, .damage-text { position: absolute; font-size: 18px; font-weight: bold; z-index: 5; pointer-events: none; animation: heal-effect-anim 0.8s forwards; text-shadow: 1px 1px 2px black; }
+        .heal-effect { color: #2ecc71; }
+        #time-stop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 50; animation: time-stop-anim 0.5s ease-in-out; }
+        #game-over-overlay { background-color: rgba(0,0,0,0.7); color: white; text-align: center; justify-content: center; }
+        #game-over-treasure-drop { margin-top: 10px; font-size: 18px; font-weight: bold; color: #f1c40f; text-shadow: 1px 1px 2px black; }
+        #pause-overlay { background-color: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; z-index: 200; }
+        #quit-battle-btn { background: linear-gradient(145deg, #e74c3c, #c0392b); border-bottom-color: #962d22; }
+        #quit-battle-btn:hover { background: linear-gradient(145deg, #ff6b5b, #e74c3c); }
+        #go-to-base-upgrades-button { background: linear-gradient(145deg, #f1c40f, #f39c12); border-bottom-color: #b8860b; }
+        #base-upgrade-screen { background-color: #ecf0f1; justify-content: center; }
+        #base-upgrade-panel { background: white; padding: 25px; border-radius: 10px; width: 500px; box-shadow: 0 0 20px rgba(0,0,0,0.2); text-align: center; }
+        #base-upgrade-panel h2 { margin-top: 0; }
+        .upgrade-stat-display { display: flex; justify-content: space-around; margin: 20px 0; background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .stat-block { font-size: 16px; }
+        .stat-block .arrow { color: #2ecc71; margin: 0 5px; }
+        #upgrade-cannon-btn { margin-top: 15px; background: linear-gradient(145deg, #3498db, #2980b9); border-bottom-color: #20638f; }
+        #pause-btn { position: absolute; top: 15px; right: 15px; z-index: 10; width: 48px; height: 48px; font-size: 20px; border-radius: 50%; border: 2px solid white; background-color: #2c3e50; color: white; cursor: pointer; }
+        #fullscreen-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            background-color: rgba(44, 62, 80, 0.5);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #fire-cannon-btn { width: 60px; height: 60px; font-size: 28px; border-radius: 50%; border: 2px solid white; background-color: #e74c3c; color: white; cursor: pointer; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        #fire-cannon-btn.disabled { background-color: #7f8c8d; cursor: not-allowed; color: #bdc3c7; }
+        #cannon-charge-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background-color: rgba(241, 196, 15, 0.7); transition: height 0.1s linear; z-index: 1; }
+        #fire-cannon-btn span { position: relative; z-index: 2; }
+        @keyframes cannon-laser-anim { 0% { opacity: 0.8; height: 2px; transform: translateY(-1px); } 50% { opacity: 1; height: 10px; transform: translateY(-5px); } 100% { opacity: 0; height: 2px; transform: translateY(-1px); } }
+        .cannon-laser { position: absolute; left: 100px; width: 600px; top: 50%; background: linear-gradient(90deg, rgba(255,255,255,0), #fff, #81ecec, #fff, rgba(255,255,255,0)); box-shadow: 0 0 20px #fff; border-radius: 5px; z-index: 40; pointer-events: none; animation: cannon-laser-anim 0.3s forwards; }
+        #go-to-treasures-button { background: linear-gradient(145deg, #1abc9c, #16a085); border-bottom-color: #117a65; }
+        #treasure-screen { background-color: #d7ccc8; padding-top: 80px; }
+        #treasure-grid { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; overflow-y: auto; padding: 15px; }
+        .treasure-card { background: #efebe9; border: 2px solid #a1887f; border-radius: 10px; padding: 10px; text-align: center; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; }
+        .treasure-card.owned { background: #fff8e1; border-color: #fdd835; }
+        .treasure-icon { font-size: 48px; margin-bottom: 8px; }
+        .treasure-name { font-weight: bold; font-size: 16px; color: #4e342e; }
+        .treasure-desc { font-size: 13px; color: #6d4c41; margin-top: 5px; flex-grow: 1; }
+        .treasure-owned-tag { position: absolute; top: 5px; right: 5px; background: #fdd835; color: #4e342e; padding: 2px 6px; border-radius: 8px; font-size: 12px; font-weight: bold; }
+        #go-to-daily-button { background: linear-gradient(145deg, #3498db, #2980b9); border-bottom-color: #20638f; }
+        #daily-modal-content { width: 600px; }
+        .modal-tabs { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 15px; }
+        .tab-button { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 18px; font-weight: bold; color: #7f8c8d; border-bottom: 3px solid transparent; }
+        .tab-button.active { color: #2980b9; border-bottom-color: #2980b9; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        #login-rewards-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; text-align: center; }
+        .login-reward-item { border: 2px solid #bdc3c7; border-radius: 8px; padding: 10px; background: #f8f9fa; }
+        .login-reward-item.claimed { background: #e8f5e9; border-color: #2ecc71; }
+        .login-reward-item.today { border-color: #3498db; box-shadow: 0 0 10px #3498db; }
+        .login-reward-item .day { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        .login-reward-item .reward-icon { font-size: 28px; }
+        .login-reward-item .reward-text { font-size: 12px; }
+        #mission-list { display: flex; flex-direction: column; gap: 12px; }
+        .mission-item { display: flex; align-items: center; background: #ecf0f1; padding: 10px; border-radius: 8px; }
+        .mission-desc { flex-grow: 1; font-size: 16px; }
+        .mission-progress { margin: 0 15px; font-size: 14px; color: #34495e; }
+        .mission-claim-btn { padding: 8px 15px; font-size: 14px; color: white; background: #2ecc71; border: none; border-bottom: 3px solid #27ae60; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .mission-claim-btn.disabled { background: #95a5a6; border-bottom-color: #7f8c8d; cursor: not-allowed; }
+        #enchantment-section { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #bdc3c7; }
+        #enchantment-section h3 { margin-top: 0; color: #8e44ad; }
+        .enchant-stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 16px; }
+        .enchant-stat-row .stat-name { font-weight: bold; }
+        .enchant-stat-row .stat-value .arrow { color: #2ecc71; margin: 0 5px; }
+        .enchant-btn { background: linear-gradient(145deg, #9b59b6, #8e44ad); border: none; border-bottom: 2px solid #6c3483; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: all 0.1s ease; }
+        .enchant-btn:hover:not(.disabled) { background: linear-gradient(145deg, #af7ac5, #9b59b6); }
+        .enchant-btn:active:not(.disabled) { transform: translateY(1px); border-bottom-width: 1px; }
+        #toast-container { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+        @keyframes toast-fade-in-out { 0%, 100% { opacity: 0; transform: translateY(20px); } 10%, 90% { opacity: 1; transform: translateY(0); } }
+        .toast-message { background: rgba(0, 0, 0, 0.8); color: white; padding: 10px 20px; border-radius: 20px; font-size: 16px; animation: toast-fade-in-out 3s forwards; }
+        #battlefield.bg-grassland { background: linear-gradient(to top, #78c850 0%, #a8e6cf 100%); }
+        #battlefield.bg-cave { background: linear-gradient(to top, #705848 0%, #a09080 100%); }
+        #battlefield.bg-forest { background: linear-gradient(to top, #386641 0%, #6a994e 100%); }
+        #battlefield.bg-plateau { background: linear-gradient(to top, #e0c068 0%, #f0e0a8 100%); }
+        #battlefield.bg-volcano { background: linear-gradient(to top, #c0392b 0%, #f39c12 100%); }
+        #battlefield.bg-cosmic { background: linear-gradient(to top, #2c3e50 0%, #4a00e0 100%); }
+        #battlefield.bg-fortress { background: linear-gradient(to top, #7f8c8d 0%, #bdc3c7 100%); }
+        #battlefield.bg-dark { background: linear-gradient(to top, #2c3e50 0%, #6c3483 100%); }
+        #go-to-collection-book-button { background: linear-gradient(145deg, #a569bd, #884ea0); border-bottom-color: #6c3483; }
+        #collection-book-screen { background-color: #f5f5f5; padding: 20px; box-sizing: border-box; }
+        #collection-book-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px 0 80px; margin-bottom: 10px; box-sizing: border-box; }
+        #claim-all-rewards-btn { background: #f1c40f; border-bottom-color: #c8a20e; }
+        .collection-book-grid { width: 100%; height: calc(100% - 100px); overflow-y: auto; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; padding: 10px; }
+        .tab-content.collection-book-grid.active { display: grid; }
+        .collection-item { border: 2px solid #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; background: #fff; position: relative; cursor: pointer; }
+        .collection-item.locked { background: #e0e0e0; color: #999; }
+        .collection-item .item-icon { font-size: 40px; }
+        .collection-item .item-name { font-size: 14px; font-weight: bold; margin-top: 5px; }
+        .reward-claim-button { position: absolute; bottom: -10px; font-size: 20px; background: none; border: none; cursor: pointer; }
+        #go-to-shop-button {
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            border-bottom-color: #1e8449;
+        }
+        #shop-screen {
+            background-color: #dcedc8;
+            padding-top: 80px;
+            justify-content: flex-start;
+        }
+        #shop-grid {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .shop-item-card {
+            background: #fff;
+            border: 2px solid #a5d6a7;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .shop-item-icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+        .shop-item-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #388e3c;
+        }
+        .shop-item-reward {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 8px 0;
+        }
+        .shop-item-desc {
+            font-size: 14px;
+            color: #555;
+            margin: 10px 0;
+            flex-grow: 1;
+        }
+        .shop-item-buy-section {
+            margin-top: auto;
+        }
+        .shop-buy-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(145deg, #fbc02d, #fdd835);
+            border: none;
+            border-bottom: 3px solid #f9a825;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .shop-buy-btn:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .shop-buy-btn:active:not(.disabled) {
+            transform: translateY(1px);
+            border-bottom-width: 1px;
+        }
+        .shop-buy-btn.disabled {
+            background: #bdbdbd;
+            border-bottom-color: #9e9e9e;
+            cursor: not-allowed;
+        }
+        #menu-modal-overlay .modal-content {
+            width: 550px;
+        }
+        #menu-buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        #go-to-menu-button {
+             background: linear-gradient(145deg, #6c7a89, #4d5a68);
+             border-bottom-color: #2b3e50;
+        }
+        .pool-details-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 28px;
+            height: 28px;
+            background-color: rgba(0, 0, 0, 0.4);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: help;
+            z-index: 10;
+            border: 2px solid white;
+            transition: background-color 0.2s;
+        }
+        .pool-details-btn:hover {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        #gacha-rates-modal-content {
+            width: 600px;
+            max-height: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+        #gacha-rates-summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background-color: #f0f2f5;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 16px;
+        }
+        #gacha-rates-details {
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        #gacha-rates-details h3 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+        }
+        .rate-unit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+        .rate-unit-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 12px;
+        }
+        .rate-unit-item .icon {
+            font-size: 32px;
+        }
+        .rate-unit-item .name {
+            margin-top: 4px;
+            font-weight: bold;
+        }
+        
+        #gacha-results .gacha-card-container {
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .reveal-animation {
+            animation: gacha-card-reveal-anim 0.4s ease-out forwards;
+        }
+        @keyframes gacha-card-reveal-anim {
+            from {
+                opacity: 0;
+                transform: scale(0.5) rotate(-15deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        .rare-reveal-animation {
+            animation: gacha-card-rare-reveal-anim 1s forwards;
+        }
+        @keyframes gacha-card-rare-reveal-anim {
+            0% {
+                opacity: 0;
+                transform: scale(0.6);
+                box-shadow: none;
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(0.8);
+                box-shadow: 0 0 35px 15px #f1c40f, 0 0 50px 30px #ffffff;
+            }
+            80% {
+                opacity: 1;
+                transform: scale(1.15);
+                box-shadow: 0 0 15px 5px #f1c40f, 0 0 25px 15px #ffffff;
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+                box-shadow: 0 0 10px 2px #f1c40f;
+            }
+        }
+
+        .draggable-scroll {
+            cursor: grab;
+            user-select: none;
+        }
+        .draggable-scroll.active-drag {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- HTML 結構保持不變... -->
+        <button id="fullscreen-btn" title="全螢幕">⛶</button>
+        <audio id="bgm" loop></audio>
+        
+        <div id="start-screen" class="screen active"> <h1 style="font-size: 48px;">貓咪大亂鬥</h1> <p id="start-screen-text">點擊任意處開始遊戲</p> </div>
+        <div id="hub-screen" class="screen">
+            <div id="top-bar"> <div id="settings-button">⚙️</div> <div id="magic-stone-display" class="resource-display">💎 <span></span></div> <div id="cat-food-display" class="resource-display">🥫 <span></span></div> <div id="xp-display" class="resource-display">🌟 <span></span></div> </div>
+            <h1>貓咪大亂鬥</h1>
+            <div id="hub-main-buttons">
+                <button id="go-to-stages-button" class="hub-button">出擊</button>
+                <button id="go-to-gacha-button" class="hub-button">貓咪轉蛋</button>
+                <button id="go-to-menu-button" class="hub-button">選單</button>
+            </div>
+        </div>
+        
+        <div id="stage-select-screen" class="screen"><button class="back-button" id="stage-back-button">返回</button><h2>選擇關卡</h2><div id="stage-list"></div></div>
+        
+        <div id="gacha-screen" class="screen">
+            <button class="back-button" id="gacha-main-back-button">返回</button>
+            <div id="gacha-pool-selection" class="gacha-view">
+                <div class="pool-selection-container">
+                    <div id="normal-pool-btn" class="pool-selection-button">
+                        <div id="normal-pool-details-btn" class="pool-details-btn" title="查看機率">!</div>
+                        <div class="pool-title">常駐池</div>
+                        <div class="pool-rateup-icon">🐾</div>
+                        <div class="pool-desc">可獲得N、R與部分SSR角色<br>適合新手入門！</div>
+                    </div>
+                    <div id="limited-pool-btn" class="pool-selection-button">
+                        <div id="limited-pool-details-btn" class="pool-details-btn" title="查看機率">!</div>
+                        <div id="limited-pool-title" class="pool-title"></div>
+                        <div id="limited-pool-icon" class="pool-rateup-icon"></div>
+                        <div id="limited-pool-desc" class="pool-desc"></div>
+                        <div id="limited-pool-rateup"></div>
+                        <div id="limited-pool-countdown"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="gacha-pull-interface" class="gacha-view">
+                <button class="back-button" id="gacha-pool-back-button">選擇卡池</button>
+                <div id="gacha-current-food">罐頭: <span></span></div>
+                <h2 id="gacha-pull-title"></h2>
+                <div id="gacha-pull-buttons" class="hub-main-buttons">
+                    <button id="gacha-pull-1" class="hub-button"></button>
+                    <button id="gacha-pull-10" class="hub-button"></button>
+                </div>
+                <div id="gacha-results"></div>
+            </div>
+        </div>
+
+        <div id="collection-screen" class="screen"><button class="back-button" id="collection-back-button">返回</button><div id="deck-management-area"><div id="current-deck-container"><h3>目前隊伍 (<span id="deck-count">0</span>/<span id="deck-limit">0</span>)</h3><div id="current-deck-display"></div></div><div id="owned-units-container"><h3>我的貓咪 <button id="toggle-upgrade-mode-btn" title="切換編成/強化模式">🔧 強化</button></h3><div id="owned-units-grid"></div></div></div></div>
+        <div id="base-upgrade-screen" class="screen"> <button class="back-button" id="base-upgrade-back-button">返回</button> <div id="base-upgrade-panel"> <h2>基地強化 - 貓咪砲</h2> <p>使用XP強化貓咪砲，在戰鬥中給予敵人致命一擊！</p> <div id="cannon-stats-display" class="upgrade-stat-display"></div> <button id="upgrade-cannon-btn" class="hub-button"></button> </div> </div>
+        <div id="treasure-screen" class="screen"> <button class="back-button" id="treasure-back-button">返回</button> <h2 style="position: absolute; top: 20px; color: #4e342e;">寶物庫</h2> <div id="treasure-grid"></div> </div>
+        
+        <div id="shop-screen" class="screen">
+            <button class="back-button" id="shop-back-button">返回</button>
+            <h2 style="color: #388e3c; position: absolute; top: 20px;">貓咪商店</h2>
+            <div id="shop-grid"></div>
+        </div>
+
+        <div id="collection-book-screen" class="screen">
+            <button class="back-button" id="collection-book-back-button">返回</button>
+            <div id="collection-book-header">
+                <div class="modal-tabs">
+                    <button class="tab-button active" data-tab="player-units">我方單位</button>
+                    <button class="tab-button" data-tab="enemy-units">敵方單位</button>
+                </div>
+                <button id="claim-all-rewards-btn" class="hub-button">一鍵領取</button>
+            </div>
+            <div id="player-units-tab" class="tab-content active collection-book-grid"></div>
+            <div id="enemy-units-tab" class="tab-content collection-book-grid"></div>
+        </div>
+
+        <div id="battle-screen" class="screen"> <button id="pause-btn">❚❚</button> <div id="battlefield"><div id="time-stop-overlay"></div></div> <div id="battle-ui"> <div id="battle-info-panel"> <div id="money-display"></div> <div id="money-level-display"></div> <button id="upgrade-money-btn"></button> </div> <div id="deployment-bar"></div> <div id="battle-controls"> <button id="fire-cannon-btn" class="disabled"> <div id="cannon-charge-bar"></div> <span>💥</span> </button> <button id="speed-toggle-btn"></button> </div> </div> </div>
+        <div id="game-over-overlay" class="screen"> <h2 id="game-over-title"></h2> <p id="game-over-reward"></p> <p id="game-over-treasure-drop"></p> <button id="back-to-hub-button" class="hub-button">返回主選單</button> </div>
+        <div id="pause-overlay" class="screen"> <div class="modal-content" style="width: 300px;"> <h2 style="margin-top: 0;">遊戲暫停</h2> <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;"> <button id="resume-btn" class="hub-button">繼續遊戲</button> <button id="quit-battle-btn" class="hub-button">退出戰鬥</button> </div> </div> </div>
+
+        <div id="gacha-animation-overlay"><div id="gacha-gate"></div></div>
+        <div id="daily-modal-overlay" class="modal-overlay"> <div id="daily-modal-content" class="modal-content"> <button id="modal-close-btn" class="daily-modal-close">×</button> <div class="modal-tabs"> <button class="tab-button active" data-tab="login">登入獎勵</button> <button class="tab-button" data-tab="missions">每日任務</button> </div> <div id="login-tab" class="tab-content active"> <h3>7日登入獎勵</h3> <div id="login-rewards-grid"></div> </div> <div id="missions-tab" class="tab-content"> <h3>每日任務</h3> <div id="mission-list"></div> </div> </div> </div>
+        <div id="upgrade-modal-overlay" class="modal-overlay"> <div id="upgrade-modal-content" class="modal-content"> <button id="modal-close-btn" class="upgrade-modal-close">×</button> <h2 id="modal-unit-name"></h2> <div id="modal-unit-icon"></div> <div id="modal-stats"></div> <button id="modal-upgrade-btn"></button> <div id="enchantment-section"> <h3>魔法附魔</h3> <div id="enchant-stats-area"></div> </div> </div> </div>
+        <div id="settings-overlay" class="screen"> <div id="settings-panel"> <h2>設定</h2> <div class="settings-row"> <label for="volume-slider">背景音樂音量</label> <input type="range" id="volume-slider" min="0" max="1" step="0.05"> </div> <button id="reset-game-button" class="back-button">重置遊戲進度</button> </div> </div>
+        
+        <div id="menu-modal-overlay" class="modal-overlay">
+            <div class="modal-content">
+                <button id="modal-close-btn" class="menu-modal-close">×</button>
+                <h2 style="margin-top:0;">選單</h2>
+                <div id="menu-buttons-grid">
+                    <button id="go-to-collection-button" class="hub-button">隊伍編成</button>
+                    <button id="go-to-base-upgrades-button" class="hub-button">基地強化</button>
+                    <button id="go-to-treasures-button" class="hub-button">寶物庫</button>
+                    <button id="go-to-daily-button" class="hub-button">每日<div class="notification-badge">!</div></button>
+                    <button id="go-to-shop-button" class="hub-button">商店</button>
+                    <button id="go-to-collection-book-button" class="hub-button">貓咪圖鑑<div class="notification-badge">!</div></button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="gacha-rates-modal-overlay" class="modal-overlay">
+            <div id="gacha-rates-modal-content" class="modal-content">
+                <button id="modal-close-btn" class="gacha-rates-modal-close">×</button>
+                <h2 id="gacha-rates-title"></h2>
+                <div id="gacha-rates-summary"></div>
+                <div id="gacha-rates-details"></div>
+            </div>
+        </div>
+
+        <div id="toast-container"></div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 省略所有常數...
+    const ALL_UNITS = { 'cat_basic': { name: '小貓', icon: '😼', rarity: 'N', hp: 100, atk: 10, range: 40, speed: 2, cost: 50 }, 'cat_tank': { name: '坦克貓', icon: '😾', rarity: 'N', hp: 300, atk: 5, range: 35, speed: 1, cost: 75 }, 'cat_crusader': { name: '十字軍貓', icon: '🛡️', rarity: 'N', hp: 250, atk: 12, range: 40, speed: 1.2, cost: 100, blockChance: 0.2 }, 'cat_ninja': { name: '忍者貓', icon: '🥷', rarity: 'N', hp: 80, atk: 15, range: 40, speed: 3, cost: 60 }, 'cat_axe': { name: '斧頭貓', icon: '😺', rarity: 'R', hp: 150, atk: 25, range: 45, speed: 1.5, cost: 120 }, 'cat_magic': { name: '法師貓', icon: '🧙', rarity: 'R', hp: 90, atk: 20, range: 200, speed: 1.2, cost: 200 }, 'cat_freeze': { name: '冷凍貓', icon: '🧊', rarity: 'R', hp: 120, atk: 15, range: 150, speed: 1.5, cost: 280, freeze: { chance: 0.3, duration: 2000 } }, 'cat_samurai': { name: '武士貓', icon: '👺', rarity: 'R', hp: 200, atk: 30, range: 45, speed: 1.8, cost: 180, crit: { chance: 0.1, multiplier: 3 } }, 'cat_miner': { name: '礦工貓', icon: '⛏️', rarity: 'R', hp: 180, atk: 20, range: 40, speed: 1.5, cost: 220, moneyOnKill: { chance: 0.25, amount: 100 } }, 'cat_king': { name: '獅王貓', icon: '🦁', rarity: 'SSR', hp: 500, atk: 50, range: 60, speed: 1, cost: 400 }, 'cat_dragon': { name: '龍騎士貓', icon: '🐉', rarity: 'SSR', hp: 350, atk: 70, range: 150, speed: 1.5, cost: 550, splashRange: 50 }, 'cat_healer': { name: '治癒貓', icon: '🙏', rarity: 'SSR', hp: 200, atk: 5, range: 120, speed: 1.2, cost: 300, heal: 20 }, 'cat_valkyrie': { name: '女武神貓', icon: '💃', rarity: 'SSR', hp: 400, atk: 40, range: 50, speed: 3, cost: 600, attackInterval: 1000 }, 'cat_gunslinger': { name: '槍手貓', icon: '🤠', rarity: 'SSR', hp: 300, atk: 25, range: 160, speed: 1.5, cost: 500, multiHit: { count: 3, delay: 150 } }, 'cat_bard': { name: '吟遊詩人貓', icon: '🎵', rarity: 'SSR', hp: 250, atk: 0, range: 150, speed: 1.2, cost: 450, attackBuff: { radius: 150, multiplier: 1.2, duration: 5000 } }, 'cat_mecha': { name: '機械貓神', icon: '🤖', rarity: 'UR', hp: 1200, atk: 150, range: 180, speed: 2, cost: 1200, splashRange: 70 }, 'cat_timelord': { name: '時空貓', icon: '⏳', rarity: 'UR', hp: 800, atk: 80, range: 100, speed: 1, cost: 1500, timeStop: { chance: 0.15, duration: 2500 } }, 'cat_cosmic_dragon': { name: '宇宙龍貓', icon: '☄️', rarity: 'UR', hp: 1500, atk: 180, range: 200, speed: 1, cost: 1800, splashRange: 80, weaken: { chance: 0.3, multiplier: 0.5, duration: 5000 } },'cat_assassin': { name: '刺客貓', icon: '🗡️', rarity: 'R', hp: 100, atk: 10, range: 40, speed: 3.5, cost: 160, multiHit: { count: 2, delay: 100 } },'cat_paladin': { name: '聖騎士貓', icon: '⚜️', rarity: 'SSR', hp: 600, atk: 60, range: 130, speed: 1, cost: 650, splashRange: 30, weaken: { chance: 0.2, multiplier: 0.7, duration: 3000 } },'cat_demolitionist': { name: '爆破專家貓', icon: '💣', rarity: 'SSR', hp: 250, atk: 100, range: 160, speed: 1.2, cost: 700, splashRange: 120 },'cat_sun_god': { name: '太陽神貓', icon: '☀️', rarity: 'UR', hp: 2000, atk: 250, range: 180, speed: 0.8, cost: 2500, waveAttack: { chance: 0.3, distance: 250 } } };
+    const ENEMY_UNITS = { 'doge': { name: '狗狗', icon: '🐶', hp: 80, atk: 10, range: 30, speed: 1.5 }, 'snake': { name: '蛇蛇', icon: '🐍', hp: 120, atk: 20, range: 80, speed: 1 }, 'bat': { name: '蝙蝠', icon: '🦇', hp: 50, atk: 15, range: 100, speed: 2.5 }, 'bear': { name: '熊熊', icon: '🐻', hp: 800, atk: 50, range: 40, speed: 0.8 }, 'volcano_golem': { name: '火山魔像', icon: '🌋', hp: 15000, atk: 200, range: 100, speed: 0.5, splashRange: 80 }, 'alien_doge': { name: '外星狗狗', icon: '👽', hp: 100, atk: 15, range: 35, speed: 3, dodgeChance: 0.3 }, 'cyborg_snake': { name: '機械蛇蛇', icon: '🦾', hp: 500, atk: 40, range: 250, speed: 0.7 }, 'dark_lord': { name: '暗黑帝王', icon: '😈', hp: 25000, atk: 300, range: 120, speed: 0.4, waveAttack: { chance: 0.5, distance: 200 } }, 'ghost': { name: '幽靈', icon: '👻', hp: 150, atk: 25, range: 120, speed: 2.2, dodgeChance: 0.5 },'stone_golem': { name: '石頭人', icon: '🧱', hp: 2000, atk: 80, range: 50, speed: 0.4 },'abyss_lord': { name: '深淵領主', icon: '🐙', hp: 80000, atk: 500, range: 150, speed: 0.3, splashRange: 100 } };
+    const TREASURES = { 'grass_amulet': { name: '草原護符', icon: '🍀', desc: '戰鬥開始時，金錢上限 +500。', effect: { type: 'moneyMax', value: 500 } }, 'cave_crystal': { name: '洞窟水晶', icon: '💎', desc: '金錢生產速度提升 10%。', effect: { type: 'moneyRate', value: 1.1 } }, 'forest_idol': { name: '森林神像', icon: '🗿', desc: '所有貓咪的 HP 提升 10%。', effect: { type: 'unitHp', value: 1.1 } }, 'plateau_relic': { name: '高原遺物', icon: '📜', desc: '所有貓咪的攻擊力提升 10%。', effect: { type: 'unitAtk', value: 1.1 } }, 'volcano_heart': { name: '火山之心', icon: '❤️‍🔥', desc: '貓咪砲充能時間減少 15%。', effect: { type: 'cannonCharge', value: 0.85 } }, 'cosmic_map': { name: '宇宙地圖', icon: '🗺️', desc: '我方基地 HP 增加 20%。', effect: { type: 'baseHp', value: 1.2 } }, 'steel_blueprint': { name: '鋼鐵藍圖', icon: '🔩', desc: '貓咪砲傷害提升 25%。', effect: { type: 'cannonDamage', value: 1.25 } }, 'dark_crown': { name: '暗黑王冠', icon: '👑', desc: 'XP 獲得量永久提升 20%。', effect: { type: 'xpGain', value: 1.2 } },'abyss_tentacle': { name: '深淵觸手', icon: '🦑', desc: '所有貓咪的出擊成本降低 5%。', effect: { type: 'costReduction', value: 0.95 } } };
+    const STAGE_CONFIG = { 1: { name: "新手草原", background: 'bg-grassland', enemyBaseHp: 2000, reward: { food: 50, xp: 100 }, enemies: [{ type: 'doge', time: 3 }, { type: 'doge', time: 8 }], treasureDrop: { id: 'grass_amulet', chance: 0.3 } }, 2: { name: "陰森洞窟", background: 'bg-cave', enemyBaseHp: 4000, reward: { food: 80, xp: 250 }, enemies: [{ type: 'snake', time: 4 }, { type: 'bat', time: 7 }, { type: 'doge', time: 10 }], treasureDrop: { id: 'cave_crystal', chance: 0.25 } }, 3: { name: "巨熊森林", background: 'bg-forest', enemyBaseHp: 7000, reward: { food: 150, xp: 500 }, enemies: [{ type: 'bear', time: 10 }, { type: 'doge', time: 12 }], treasureDrop: { id: 'forest_idol', chance: 0.2 }, stoneDrop: { chance: 0.1, amount: 1 } }, 4: { name: "霜凍高原", background: 'bg-plateau', enemyBaseHp: 9000, reward: { food: 200, xp: 700 }, enemies: [{ type: 'snake', time: 3 }, { type: 'bear', time: 20 }], treasureDrop: { id: 'plateau_relic', chance: 0.2 }, stoneDrop: { chance: 0.1, amount: 1 } }, 5: { name: "煉獄火山", background: 'bg-volcano', enemyBaseHp: 12000, reward: { food: 500, xp: 1500 }, enemies: [{ type: 'bear', time: 5 }, { type: 'volcano_golem', time: 30 }], treasureDrop: { id: 'volcano_heart', chance: 0.15 }, stoneDrop: { chance: 0.2, amount: 2 } }, 6: { name: "宇宙公路", background: 'bg-cosmic', enemyBaseHp: 15000, reward: { food: 300, xp: 1200 }, enemies: [{ type: 'alien_doge', time: 3 }, { type: 'alien_doge', time: 5 }, { type: 'ghost', time: 8 }, { type: 'bat', time: 15 }], treasureDrop: { id: 'cosmic_map', chance: 0.15 }, stoneDrop: { chance: 0.2, amount: 2 } }, 7: { name: "鋼鐵要塞", background: 'bg-fortress', enemyBaseHp: 20000, reward: { food: 400, xp: 2000 }, enemies: [{ type: 'cyborg_snake', time: 5 }, { type: 'stone_golem', time: 10 }, { type: 'cyborg_snake', time: 20 }], treasureDrop: { id: 'steel_blueprint', chance: 0.1 }, stoneDrop: { chance: 0.3, amount: 3 } }, 8: { name: "暗黑王座", background: 'bg-dark', enemyBaseHp: 50000, reward: { food: 1000, xp: 5000 }, enemies: [{ type: 'bear', time: 5 }, { type: 'bear', time: 10 }, { type: 'dark_lord', time: 30 }], treasureDrop: { id: 'dark_crown', chance: 0.1 }, stoneDrop: { chance: 0.5, amount: 5 } }, 9: { name: "深淵裂縫", background: 'bg-dark', enemyBaseHp: 120000, reward: { food: 2000, xp: 10000 }, enemies: [{ type: 'ghost', time: 3 }, { type: 'stone_golem', time: 10 }, { type: 'cyborg_snake', time: 20 }, { type: 'abyss_lord', time: 45 }], treasureDrop: { id: 'abyss_tentacle', chance: 0.1 }, stoneDrop: { chance: 1, amount: 10 } } };
+    const LIMITED_POOL_ROTATIONS = [ { name: "超古代勇者", icon: "🗿", desc: "傳說中的古代英雄們集結！", rateUp: ['cat_samurai', 'cat_king'], style: "background: linear-gradient(145deg, #c31432, #240b36);" }, { name: "鋼鐵軍團", icon: "⚙️", desc: "用未來科技粉碎敵人！", rateUp: ['cat_mecha', 'cat_gunslinger'], style: "background: linear-gradient(145deg, #757f9a, #d7dde8);" }, { name: "時空旅人", icon: "🌌", desc: "掌握時間與空間的神秘力量！", rateUp: ['cat_timelord', 'cat_magic'], style: "background: linear-gradient(145deg, #1e3c72, #2a5298);" }, { name: "聖光與女武神", icon: "✨", desc: "神聖的力量將淨化一切！", rateUp: ['cat_valkyrie', 'cat_healer'], style: "background: linear-gradient(145deg, #f7ff00, #db36a4);" }, { name: "淘金熱潮", icon: "💰", desc: "致富的機會來了！", rateUp: ['cat_miner', 'cat_axe'], style: "background: linear-gradient(145deg, #f1c40f, #f39c12);" }, { name: "天體奇觀", icon: "🔭", desc: "來自宇宙深處的未知力量！", rateUp: ['cat_cosmic_dragon', 'cat_bard'], style: "background: linear-gradient(145deg, #4b6cb7, #182848);" }, { name: "暗影奇襲", icon: "🌙", desc: "悄無聲息，一擊斃命！", rateUp: ['cat_assassin', 'cat_ninja'], style: "background: linear-gradient(145deg, #2c3e50, #4c5b6a);" }, { name: "神聖制裁", icon: "⚖️", desc: "以聖光之名，制裁邪惡！", rateUp: ['cat_paladin', 'cat_healer'], style: "background: linear-gradient(145deg, #e9e4f0, #d3cce3);" }, { name: "末日兵器", icon: "💥", desc: "絕對的破壞力，將一切化為灰燼。", rateUp: ['cat_demolitionist', 'cat_mecha'], style: "background: linear-gradient(145deg, #cb2d3e, #ef473a);" }, { name: "天神下凡", icon: "👑", desc: "傳說中的神祇降臨戰場！", rateUp: ['cat_sun_god', 'cat_timelord'], style: "background: linear-gradient(145deg, #ffdde1, #ee9ca7);" } ];
+    const RARITY_CONFIG = { 'N': { prob: 0.55 }, 'R': { prob: 0.35 }, 'SSR': { prob: 0.08 }, 'UR': { prob: 0.02 }, };
+    const POOL_CONFIG = { normal: { costSingle: 30, costTen: 270, units: Object.keys(ALL_UNITS).filter(id => ['N', 'R'].includes(ALL_UNITS[id].rarity) || id === 'cat_king') }, limited: { costSingle: 60, costTen: 540, units: Object.keys(ALL_UNITS) } };
+    const MONEY_LEVEL_CONFIG = [{ cost: 100, max: 1000, rate: 20 }, { cost: 150, max: 1200, rate: 25 }, { cost: 200, max: 1500, rate: 30 }, { cost: 300, max: 1800, rate: 40 }, { cost: 500, max: 2500, rate: 50 }, { cost: Infinity, max: 2500, rate: 50 }];
+    const DUPLICATE_CONVERSION = { 'N': { xp: 10, food: 2 }, 'R': { xp: 50, food: 5 }, 'SSR': { xp: 200, food: 20 }, 'UR': { xp: 1000, food: 100 } };
+    const DECK_SIZE_LIMIT = 8;
+    const CANNON_CONFIG = [ { level: 1, damage: 100, knockback: 50, chargeTimeSec: 60, upgradeCost: 1000 }, { level: 2, damage: 150, knockback: 60, chargeTimeSec: 58, upgradeCost: 2500 }, { level: 3, damage: 200, knockback: 70, chargeTimeSec: 55, upgradeCost: 5000 }, { level: 4, damage: 300, knockback: 80, chargeTimeSec: 50, upgradeCost: 10000 }, { level: 5, damage: 500, knockback: 100, chargeTimeSec: 45, upgradeCost: Infinity }, ];
+    const LOGIN_REWARDS = [ { type: 'xp', value: 500, icon: '🌟' }, { type: 'food', value: 50, icon: '🥫' }, { type: 'xp', value: 1000, icon: '🌟' }, { type: 'food', value: 100, icon: '🥫' }, { type: 'xp', value: 2000, icon: '🌟' }, { type: 'food', value: 150, icon: '🥫' }, { type: 'food', value: 300, icon: '🎁' } ];
+    const MISSION_POOL = [ { id: 'win_stages', text: (n) => `通關 ${n} 次任意關卡`, target: 3, reward: { type: 'xp', value: 500 } }, { id: 'kill_enemies', text: (n) => `擊敗 ${n} 隻敵人`, target: 50, reward: { type: 'xp', value: 800 } }, { id: 'pull_gacha', text: (n) => `進行 ${n} 次轉蛋`, target: 5, reward: { type: 'food', value: 30 } }, { id: 'upgrade_unit', text: (n) => `升級貓咪 ${n} 次`, target: 1, reward: { type: 'xp', value: 300 } }, { id: 'spend_money', text: (n) => `在戰鬥中花費 $${n}`, target: 2000, reward: { type: 'food', value: 20 } }, ];
+    const ENCHANTMENT_CONFIG = { maxLevel: 10, hpPerLevel: 0.02, atkPerLevel: 0.02, cost: { 'N': 1, 'R': 2, 'SSR': 5, 'UR': 10 } };
+    const COLLECTION_REWARD_AMOUNT = 5; 
+    const SHOP_ITEMS = { 'xp_small': { name: 'XP包 (小)', icon: '🌟', desc: '一點點經驗值，用於應急。', cost: 100, reward: { type: 'xp', value: 1000 } }, 'xp_medium': { name: 'XP包 (中)', icon: '🌟', desc: '可觀的經驗值，加速強化。', cost: 450, reward: { type: 'xp', value: 5000 } }, 'xp_large': { name: 'XP包 (大)', icon: '🌟', desc: '大量的經驗值，讓你的隊伍突飛猛進！', cost: 800, reward: { type: 'xp', value: 10000 } }, 'stone_small': { name: '魔法石 (小)', icon: '💎', desc: '用於附魔的魔法石。', cost: 200, reward: { type: 'magicStones', value: 10 } }, 'stone_large': { name: '魔法石 (大)', icon: '💎', desc: '大量的魔法石，打造究極貓咪！', cost: 1000, reward: { type: 'magicStones', value: 60 } }, };
+    let playerState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() } };
+    let battleState = {};
+    let gameLoopId = null, gachaTimerIntervalId = null;
+    let hasShownLoginReward = false;
+    let isUpgradeMode = false;
+
+    // ++ NEW: 版本控制變數 ++
+    const GAME_VERSION = '9.9';
+    const SAVE_KEY = 'catBrawlSaveData_v9.9';
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+    // ... (makeScrollable 函數及其他大部分函數保持不變) ...
+    // ++ MODIFIED: 將 `saveGame` 和 `loadGame` 函數移到一起，並加入遷移邏輯 ++
+    function showToast(message) { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'toast-message'; toast.textContent = message; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+
+    // ++ MODIFIED: 儲存遊戲時寫入版本號 ++
+    function saveGame() {
+        const stateToSave = {
+            ...playerState,
+            version: GAME_VERSION, // 將當前遊戲版本寫入存檔
+            unlockedUnits: [...playerState.unlockedUnits],
+            seenEnemies: [...playerState.seenEnemies],
+            collectionRewards: {
+                units: [...playerState.collectionRewards.units],
+                enemies: [...playerState.collectionRewards.enemies],
+            }
+        };
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify(stateToSave));
+        } catch (e) {
+            console.error('儲存失敗:', e);
+        }
+    }
+
+    // ++ NEW: 存檔遷移函數 ++
+    function migrateSaveData(loadedState) {
+        const fromVersion = loadedState.version || '0'; // 如果存檔沒有版本號，視為最舊版 '0'
+
+        if (fromVersion === GAME_VERSION) {
+            return loadedState; // 版本相同，無需遷移
+        }
+
+        console.log(`正在從版本 ${fromVersion} 遷移存檔到 ${GAME_VERSION}...`);
+
+        // 使用 switch 的 fall-through 特性來處理跨版本更新
+        // 例如，一個 v9.8 的玩家更新到 v10.0，會先跑 9.8 -> 9.9 的更新，再跑 9.9 -> 10.0 的更新
+        switch (fromVersion) {
+            case '0': // 代表任何沒有版本號的舊存檔
+                // 對於從無版本號到 9.9 的遷移，目前沒有需要做的破壞性變更。
+                // 這裡的程式碼主要用於示範，並確保舊存檔擁有新版本所需的所有欄位。
+                if (typeof loadedState.magicStones === 'undefined') {
+                    loadedState.magicStones = 0;
+                    console.log("  - 已應用 v9.9 遷移: 初始化 magicStones");
+                }
+                if (typeof loadedState.catCannon === 'undefined') {
+                    loadedState.catCannon = { level: 1 };
+                     console.log("  - 已應用 v9.9 遷移: 初始化 catCannon");
+                }
+                // fall-through (讓它可以繼續執行後續版本的遷移)
+            
+            // case '9.9':
+            //     // 未來更新到 v10.0 時，可以在這裡添加遷移邏輯
+            //     // loadedState.newProperty = 'defaultValue';
+            //     // console.log("  - 已應用 v10.0 遷移");
+            //     // break;
+        }
+
+        // 更新完畢後，將存檔的版本號也更新為最新版
+        loadedState.version = GAME_VERSION;
+        console.log("存檔遷移完成！");
+        return loadedState;
+    }
+
+    // ++ MODIFIED: 讀取遊戲時，先進行遷移 ++
+    function loadGame() {
+        const savedData = localStorage.getItem(SAVE_KEY);
+        if (savedData) {
+            let loadedState = JSON.parse(savedData);
+
+            // 在載入狀態前，先呼叫遷移函數
+            loadedState = migrateSaveData(loadedState);
+
+            playerState = { ...playerState, ...loadedState };
+            playerState.unlockedUnits = new Set(loadedState.unlockedUnits || []);
+            playerState.seenEnemies = new Set(loadedState.seenEnemies || []);
+            playerState.collectionRewards = {
+                units: new Set(loadedState.collectionRewards?.units || []),
+                enemies: new Set(loadedState.collectionRewards?.enemies || []),
+            };
+            playerState.settings = { ...{ volume: 0.3 }, ...loadedState.settings };
+            playerState.catCannon = { level: 1, ...loadedState.catCannon };
+            playerState.treasures = { ...loadedState.treasures };
+            playerState.dailyMissions = loadedState.dailyMissions || [];
+            
+            // 舊的 level 格式相容性處理 (這個可以保留，作為一種向下相容)
+            for (const unitId in playerState.unitLevels) {
+                if (typeof playerState.unitLevels[unitId] === 'number') {
+                    playerState.unitLevels[unitId] = {
+                        level: playerState.unitLevels[unitId],
+                        enchantments: { hp: 0, atk: 0 }
+                    };
+                }
+            }
+
+            if (!playerState.deck) {
+                playerState.deck = Object.keys(playerState.unitLevels).slice(0, DECK_SIZE_LIMIT);
+            }
+        } else {
+            // 全新玩家
+            initializeUnit('cat_basic');
+            playerState.deck = Object.keys(playerState.unitLevels);
+        }
+        handleDailyReset();
+    }
+    
+    // ... (其餘所有遊戲邏輯函數保持不變) ...
+    function makeScrollable(container) { container.classList.add('draggable-scroll'); container.addEventListener('wheel', (e) => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { return; } e.preventDefault(); container.scrollLeft += e.deltaY; }); let isDown = false; let startX; let scrollLeft; let isDragging = false; container.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isDown = true; isDragging = false; container.classList.add('active-drag'); startX = e.pageX - container.offsetLeft; scrollLeft = container.scrollLeft; }); const endDrag = () => { if (!isDown) return; isDown = false; container.classList.remove('active-drag'); }; container.addEventListener('mouseleave', endDrag); container.addEventListener('mouseup', endDrag); container.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - container.offsetLeft; const walk = x - startX; if (Math.abs(walk) > 5) { isDragging = true; } if (isDragging) { container.scrollLeft = scrollLeft - walk; } }); container.addEventListener('click', (e) => { if (isDragging) { e.preventDefault(); e.stopPropagation(); } }, true); }
+    async function handleGachaPull(count, poolType, poolIndex = -1) { let config, rateUpUnits = []; if (poolType === 'normal') { config = POOL_CONFIG.normal; } else { const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool }; rateUpUnits = currentPool.rateUp; } const cost = count === 1 ? config.costSingle : config.costTen; if (playerState.catFood < cost) { showToast('貓罐頭不足！'); return; } document.getElementById('gacha-pull-1').disabled = true; document.getElementById('gacha-pull-10').disabled = true; updateMissionProgress('pull_gacha', count); playerState.catFood -= cost; const results = []; let highestRarity = 'N'; const rarityOrder = { N: 0, R: 1, SSR: 2, UR: 3 }; for (let i = 0; i < count; i++) { let rand = Math.random(), chosenRarity, cumulativeProb = 0; for (const rarity in RARITY_CONFIG) { cumulativeProb += RARITY_CONFIG[rarity].prob; if (rand < cumulativeProb) { chosenRarity = rarity; break; } } if (poolType === 'normal' && chosenRarity === 'UR') chosenRarity = 'SSR'; let unitId; const potentialRateUp = rateUpUnits.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); if (potentialRateUp.length > 0 && Math.random() < 0.5) { unitId = potentialRateUp[Math.floor(Math.random() * potentialRateUp.length)]; } else { const availableUnits = config.units.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); unitId = availableUnits.length > 0 ? availableUnits[Math.floor(Math.random() * availableUnits.length)] : 'cat_basic'; } const isNew = initializeUnit(unitId); if (!isNew) { const conversion = DUPLICATE_CONVERSION[ALL_UNITS[unitId].rarity]; playerState.xp += conversion.xp; playerState.catFood += conversion.food; } results.push({ id: unitId, isNew: isNew }); if (rarityOrder[chosenRarity] > rarityOrder[highestRarity]) { highestRarity = chosenRarity; } } updateTopBar(); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; const gachaGate = document.getElementById('gacha-gate'); gachaGate.className = 'gacha-gate'; let waitTime = 1500; if (highestRarity === 'UR') { gachaGate.classList.add('ur-mode'); waitTime = 3000; } else if (highestRarity === 'SSR') { gachaGate.classList.add('ssr-mode'); waitTime = 2000; } document.getElementById('gacha-animation-overlay').style.display = 'flex'; await sleep(waitTime); document.getElementById('gacha-animation-overlay').style.display = 'none'; const container = document.getElementById('gacha-results'); container.innerHTML = ''; for (const result of results) { const resultContainer = document.createElement('div'); resultContainer.className = 'gacha-card-container'; const card = createUnitCard(result.id); const feedback = document.createElement('div'); feedback.className = 'gacha-card-feedback'; if (result.isNew) { feedback.classList.add('feedback-new'); feedback.textContent = 'NEW!'; } else { const conv = DUPLICATE_CONVERSION[ALL_UNITS[result.id].rarity]; feedback.classList.add('feedback-dupe'); feedback.textContent = `+${conv.xp} XP, +${conv.food}🥫`; } resultContainer.appendChild(card); resultContainer.appendChild(feedback); container.appendChild(resultContainer); const rarity = ALL_UNITS[result.id].rarity; if (rarity === 'SSR' || rarity === 'UR') { resultContainer.classList.add('rare-reveal-animation'); await sleep(800); } else { resultContainer.classList.add('reveal-animation'); await sleep(200); } } document.getElementById('gacha-pull-1').disabled = false; document.getElementById('gacha-pull-10').disabled = false; saveGame(); }
+    function renderDeckEditor() { updateUpgradeModeUI(); document.getElementById('deck-count').textContent = playerState.deck.length; document.getElementById('deck-limit').textContent = DECK_SIZE_LIMIT; const deckDisplay = document.getElementById('current-deck-display'); const ownedGrid = document.getElementById('owned-units-grid'); deckDisplay.innerHTML = ''; ownedGrid.innerHTML = ''; playerState.deck.forEach(unitId => { const card = createUnitCard(unitId); card.addEventListener('click', () => { handleDeckChange(unitId, 'remove'); }); card.addEventListener('dblclick', (e) => { e.stopPropagation(); showUpgradeModal(unitId); }); deckDisplay.appendChild(card); }); for (let i = playerState.deck.length; i < DECK_SIZE_LIMIT; i++) { const slot = document.createElement('div'); slot.className = 'deck-slot'; deckDisplay.appendChild(slot); } Object.keys(playerState.unitLevels).sort((a, b) => ALL_UNITS[b].rarity.localeCompare(ALL_UNITS[a].rarity) || getUnitDeployCost(a) - getUnitDeployCost(b)).forEach(unitId => { const card = createUnitCard(unitId); if (playerState.deck.includes(unitId)) { card.classList.add('in-deck'); } card.addEventListener('click', () => { if (isUpgradeMode) { showUpgradeModal(unitId); } else { handleDeckChange(unitId, 'toggle'); } }); ownedGrid.appendChild(card); }); }
+    function setupEventListeners() { document.getElementById('start-screen').addEventListener('click', () => { initBgm(); switchScreen('hub-screen'); }, { once: true }); document.getElementById('go-to-stages-button').addEventListener('click', () => { renderStageSelect(); switchScreen('stage-select-screen'); }); document.getElementById('go-to-gacha-button').addEventListener('click', () => { showPoolSelection(); switchScreen('gacha-screen'); }); document.getElementById('go-to-collection-button').addEventListener('click', () => { showMenuModal(false); renderDeckEditor(); switchScreen('collection-screen'); }); document.getElementById('go-to-base-upgrades-button').addEventListener('click', () => { showMenuModal(false); renderBaseUpgradeScreen(); switchScreen('base-upgrade-screen'); }); document.getElementById('go-to-treasures-button').addEventListener('click', () => { showMenuModal(false); renderTreasureScreen(); switchScreen('treasure-screen'); }); document.getElementById('go-to-daily-button').addEventListener('click', () => { showMenuModal(false); showDailyModal(true); }); document.getElementById('go-to-collection-book-button').addEventListener('click', () => { showMenuModal(false); const collectionBookScreen = document.getElementById('collection-book-screen'); collectionBookScreen.querySelector('.tab-button[data-tab="player-units"]').classList.add('active'); collectionBookScreen.querySelector('.tab-button[data-tab="enemy-units"]').classList.remove('active'); document.getElementById('player-units-tab').classList.add('active'); document.getElementById('enemy-units-tab').classList.remove('active'); renderCollectionBook(); switchScreen('collection-book-screen'); }); document.getElementById('go-to-shop-button').addEventListener('click', () => { showMenuModal(false); renderShopScreen(); switchScreen('shop-screen'); }); document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen); document.getElementById('go-to-menu-button').addEventListener('click', () => showMenuModal(true)); const menuModalOverlay = document.getElementById('menu-modal-overlay'); menuModalOverlay.querySelector('.menu-modal-close').addEventListener('click', () => showMenuModal(false)); menuModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'menu-modal-overlay') showMenuModal(false); }); document.getElementById('back-to-hub-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); }); document.getElementById('stage-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('gacha-main-back-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); }); document.getElementById('gacha-pool-back-button').addEventListener('click', showPoolSelection); document.getElementById('collection-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('base-upgrade-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('treasure-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('collection-book-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('shop-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('upgrade-money-btn').addEventListener('click', handleUpgradeMoney); document.getElementById('speed-toggle-btn').addEventListener('click', toggleBattleSpeed); document.getElementById('pause-btn').addEventListener('click', () => togglePause(true)); document.getElementById('resume-btn').addEventListener('click', () => togglePause(false)); document.getElementById('quit-battle-btn').addEventListener('click', quitBattle); document.getElementById('fire-cannon-btn').addEventListener('click', fireCatCannon); document.getElementById('settings-button').addEventListener('click', () => showSettings(true)); document.getElementById('settings-overlay').addEventListener('click', (e) => { if (e.target.id === 'settings-overlay') showSettings(false); }); document.getElementById('volume-slider').addEventListener('input', (e) => setVolume(e.target.value)); document.getElementById('reset-game-button').addEventListener('click', resetGame); const upgradeModalOverlay = document.getElementById('upgrade-modal-overlay'); upgradeModalOverlay.querySelector('.upgrade-modal-close').addEventListener('click', closeUpgradeModal); upgradeModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'upgrade-modal-overlay') closeUpgradeModal(); }); const dailyModalOverlay = document.getElementById('daily-modal-overlay'); dailyModalOverlay.querySelector('.daily-modal-close').addEventListener('click', () => showDailyModal(false)); dailyModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'daily-modal-overlay') showDailyModal(false); }); dailyModalOverlay.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => switchTab(btn.dataset.tab)); }); dailyModalOverlay.querySelector('#mission-list').addEventListener('click', (e) => { if (e.target.classList.contains('mission-claim-btn')) { claimMission(parseInt(e.target.dataset.index)); } }); const collectionBookScreen = document.getElementById('collection-book-screen'); collectionBookScreen.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => { collectionBookScreen.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); collectionBookScreen.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active'); }); }); document.getElementById('claim-all-rewards-btn').addEventListener('click', claimAllCollectionRewards); document.getElementById('toggle-upgrade-mode-btn').addEventListener('click', () => { isUpgradeMode = !isUpgradeMode; updateUpgradeModeUI(); renderDeckEditor(); }); document.getElementById('normal-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('normal'); }); document.getElementById('limited-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('limited'); }); const gachaRatesModal = document.getElementById('gacha-rates-modal-overlay'); gachaRatesModal.querySelector('.gacha-rates-modal-close').addEventListener('click', hideGachaRatesModal); gachaRatesModal.addEventListener('click', (e) => { if (e.target.id === 'gacha-rates-modal-overlay') { hideGachaRatesModal(); } }); makeScrollable(document.getElementById('current-deck-display')); makeScrollable(document.getElementById('owned-units-grid')); makeScrollable(document.getElementById('deployment-bar')); }
+    function showGachaRatesModal(poolType) { let poolConfig, poolUnits, poolName; const ratesSummary = document.getElementById('gacha-rates-summary'); const ratesDetails = document.getElementById('gacha-rates-details'); if (poolType === 'normal') { poolConfig = POOL_CONFIG.normal; poolName = '常駐池'; poolUnits = poolConfig.units; ratesSummary.innerHTML = ` <span><strong>N:</strong> ${(RARITY_CONFIG.N.prob * 100).toFixed(1)}%</span> <span><strong>R:</strong> ${(RARITY_CONFIG.R.prob * 100).toFixed(1)}%</span> <span><strong>SSR:</strong> ${((RARITY_CONFIG.SSR.prob + RARITY_CONFIG.UR.prob) * 100).toFixed(1)}%</span> `; } else { const poolIndex = getCurrentLimitedPoolIndex(); poolConfig = LIMITED_POOL_ROTATIONS[poolIndex]; poolName = poolConfig.name; poolUnits = POOL_CONFIG.limited.units; ratesSummary.innerHTML = ` <span><strong>N:</strong> ${(RARITY_CONFIG.N.prob * 100).toFixed(1)}%</span> <span><strong>R:</strong> ${(RARITY_CONFIG.R.prob * 100).toFixed(1)}%</span> <span><strong>SSR:</strong> ${(RARITY_CONFIG.SSR.prob * 100).toFixed(1)}%</span> <span><strong>UR:</strong> ${(RARITY_CONFIG.UR.prob * 100).toFixed(1)}%</span> `; } document.getElementById('gacha-rates-title').textContent = `${poolName} - 機率詳情`; ratesDetails.innerHTML = ''; const unitsByRarity = { UR: [], SSR: [], R: [], N: [] }; poolUnits.forEach(unitId => { const unit = ALL_UNITS[unitId]; if (unit && unitsByRarity[unit.rarity]) { unitsByRarity[unit.rarity].push(unit); } }); ['UR', 'SSR', 'R', 'N'].forEach(rarity => { if (unitsByRarity[rarity].length > 0) { let sectionHTML = `<h3>${rarity} 角色</h3><div class="rate-unit-grid">`; unitsByRarity[rarity].sort((a,b) => a.cost - b.cost).forEach(unit => { sectionHTML += `<div class="rate-unit-item"><span class="icon">${unit.icon}</span><span class="name">${unit.name}</span></div>`; }); sectionHTML += `</div>`; ratesDetails.innerHTML += sectionHTML; } }); document.getElementById('gacha-rates-modal-overlay').style.display = 'flex'; }
+    function hideGachaRatesModal() { document.getElementById('gacha-rates-modal-overlay').style.display = 'none'; }
+    function initializeUnit(unitId) { if (!playerState.unitLevels[unitId]) { playerState.unitLevels[unitId] = { level: 1, enchantments: { hp: 0, atk: 0 } }; if (playerState.deck.length < DECK_SIZE_LIMIT) { playerState.deck.push(unitId); } playerState.unlockedUnits.add(unitId); updateCollectionBookBadge(); return true; } return false; }
+    function handleDailyReset() { const today = new Date().toISOString().split('T')[0]; const lastLogin = playerState.lastLoginDate; hasShownLoginReward = false; if (today !== lastLogin) { const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]; if (lastLogin === yesterday) { playerState.loginStreak++; } else { playerState.loginStreak = 1; playerState.lastClaimedStreak = 0; } playerState.lastLoginDate = today; playerState.dailyMissions = []; const shuffledMissions = [...MISSION_POOL].sort(() => 0.5 - Math.random()); for (let i = 0; i < 3; i++) { const missionTemplate = shuffledMissions[i]; playerState.dailyMissions.push({ id: missionTemplate.id, progress: 0, target: missionTemplate.target, claimed: false, }); } saveGame(); } updateNotificationBadge(); }
+    function updateMissionProgress(missionId, value) { if (!playerState.dailyMissions) return; const mission = playerState.dailyMissions.find(m => m.id === missionId && !m.claimed); if (mission) { mission.progress = Math.min(mission.target, mission.progress + value); saveGame(); updateNotificationBadge(); } }
+    function updateNotificationBadge() { const hasClaimableMissions = playerState.dailyMissions.some(m => m.progress >= m.target && !m.claimed); const dailyBadge = document.querySelector('#go-to-daily-button .notification-badge'); if (dailyBadge) { dailyBadge.style.display = hasClaimableMissions ? 'flex' : 'none'; } }
+    function resetGame() { if (confirm('您確定要刪除所有遊戲進度並重新開始嗎？此操作無法復原！')) { localStorage.removeItem(SAVE_KEY); location.reload(); } }
+    function switchScreen(screenId) { const fullscreenBtn = document.getElementById('fullscreen-btn'); document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const newScreen = document.getElementById(screenId); newScreen.classList.add('active'); const hasBackButton = newScreen.querySelector('.back-button'); const isStartScreen = screenId === 'start-screen'; if (hasBackButton || isStartScreen || screenId === 'battle-screen') { fullscreenBtn.style.display = 'none'; } else { fullscreenBtn.style.display = 'flex'; } if (screenId === 'hub-screen' && !hasShownLoginReward) { const today = new Date().toISOString().split('T')[0]; if (playerState.lastLoginDate === today && playerState.loginStreak > (playerState.lastClaimedStreak || 0)) { setTimeout(() => showDailyModal(true, 'login'), 500); } hasShownLoginReward = true; } }
+    function updateTopBar() { document.querySelector('#magic-stone-display span').textContent = playerState.magicStones; document.querySelector('#cat-food-display span').textContent = playerState.catFood; document.querySelector('#xp-display span').textContent = playerState.xp; }
+    function getUnitDeployCost(unitId) { let cost = ALL_UNITS[unitId].cost; if (playerState.treasures['abyss_tentacle']) { cost = Math.round(cost * TREASURES['abyss_tentacle'].effect.value); } return cost; }
+    function getUnitStats(unitId) { const unitData = playerState.unitLevels[unitId]; if (!unitData) return null; const base = ALL_UNITS[unitId]; const level = unitData.level; const enchantments = unitData.enchantments || { hp: 0, atk: 0 }; let hpMultiplier = 1; if (playerState.treasures['forest_idol']) hpMultiplier *= TREASURES['forest_idol'].effect.value; let atkMultiplier = 1; if (playerState.treasures['plateau_relic']) atkMultiplier *= TREASURES['plateau_relic'].effect.value; let hp = base.hp * (1 + (level - 1) * 0.1); let atk = base.atk * (1 + (level - 1) * 0.1); hp += base.hp * enchantments.hp * ENCHANTMENT_CONFIG.hpPerLevel; atk += base.atk * enchantments.atk * ENCHANTMENT_CONFIG.atkPerLevel; hp *= hpMultiplier; atk *= atkMultiplier; return { ...base, cost: getUnitDeployCost(unitId), hp: Math.round(hp), atk: Math.round(atk), level, enchantments }; }
+    function getUpgradeCost(level) { return 50 * level * level; }
+    function initBgm() { const bgm = document.getElementById('bgm'); bgm.src = 'https://s19.aconvert.com/convert/p3r68-cdx67/0eb5i-4v9v1.mp3'; bgm.volume = playerState.settings.volume; const playPromise = bgm.play(); if (playPromise !== undefined) { playPromise.then(_ => {}).catch(error => { console.log("BGM自動播放失敗，等待使用者互動。", error); }); } }
+    function setVolume(volume) { playerState.settings.volume = volume; document.getElementById('bgm').volume = volume; saveGame(); }
+    function showSettings(show) { document.getElementById('settings-overlay').style.display = show ? 'flex' : 'none'; if (show) { document.getElementById('volume-slider').value = playerState.settings.volume; } }
+    function getCurrentLimitedPoolIndex() { const FIVE_MINUTES = 5 * 60 * 1000; return Math.floor(Date.now() / FIVE_MINUTES) % LIMITED_POOL_ROTATIONS.length; }
+    function showPoolSelection() { const poolIndex = getCurrentLimitedPoolIndex(); const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; const limitedPoolBtn = document.getElementById('limited-pool-btn'); limitedPoolBtn.style.cssText = currentPool.style; document.getElementById('limited-pool-title').textContent = currentPool.name; document.getElementById('limited-pool-icon').textContent = currentPool.icon; document.getElementById('limited-pool-desc').textContent = currentPool.desc; const rateupText = currentPool.rateUp.map(id => ALL_UNITS[id].name).join(' & '); document.getElementById('limited-pool-rateup').textContent = `UP: ${rateupText}`; limitedPoolBtn.onclick = () => showPullInterface('limited'); document.getElementById('normal-pool-btn').onclick = () => showPullInterface('normal'); if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); updateGachaCountdown(); gachaTimerIntervalId = setInterval(updateGachaCountdown, 1000); document.getElementById('gacha-pull-interface').classList.remove('active'); document.getElementById('gacha-pool-selection').classList.add('active'); document.getElementById('gacha-results').innerHTML = ''; }
+    function updateGachaCountdown() { const FIVE_MINUTES = 5 * 60 * 1000; const now = Date.now(); const timeIntoInterval = now % FIVE_MINUTES; const timeLeft = FIVE_MINUTES - timeIntoInterval; if (timeLeft <= 1100) { setTimeout(showPoolSelection, 1100); } const minutes = Math.floor(timeLeft / 60000); const seconds = Math.floor((timeLeft % 60000) / 1000); const countdownEl = document.getElementById('limited-pool-countdown'); if (countdownEl) { countdownEl.textContent = `刷新倒數: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; } }
+    function showPullInterface(poolType) { let config, title, poolIndex = -1; if (poolType === 'normal') { config = POOL_CONFIG.normal; title = '常駐池'; } else { poolIndex = getCurrentLimitedPoolIndex(); const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool, poolIndex }; title = currentPool.name; } document.getElementById('gacha-pull-title').textContent = title; const pull1Btn = document.getElementById('gacha-pull-1'); const pull10Btn = document.getElementById('gacha-pull-10'); pull1Btn.textContent = `單抽 (${config.costSingle}罐頭)`; pull10Btn.textContent = `十連抽 (${config.costTen}罐頭)`; pull1Btn.onclick = () => handleGachaPull(1, poolType, poolIndex); pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; document.getElementById('gacha-pool-selection').classList.remove('active'); document.getElementById('gacha-pull-interface').classList.add('active'); }
+    function updateUpgradeModeUI() { const btn = document.getElementById('toggle-upgrade-mode-btn'); const grid = document.getElementById('owned-units-grid'); btn.classList.toggle('active', isUpgradeMode); grid.classList.toggle('upgrade-mode-active', isUpgradeMode); const btnText = isUpgradeMode ? '🔧 編成' : '🔧 強化'; btn.innerHTML = btnText; const titleText = isUpgradeMode ? '切換為編成模式' : '切換為強化模式'; btn.setAttribute('title', titleText); }
+    function handleDeckChange(unitId, action) { const isInDeck = playerState.deck.includes(unitId); if (action === 'toggle') { if (isInDeck) { playerState.deck = playerState.deck.filter(id => id !== unitId); } else if (playerState.deck.length < DECK_SIZE_LIMIT) { playerState.deck.push(unitId); } } else if (action === 'remove' && isInDeck) { playerState.deck = playerState.deck.filter(id => id !== unitId); } saveGame(); renderDeckEditor(); }
+    function createUnitCard(unitId) { const unit = ALL_UNITS[unitId]; const unitData = playerState.unitLevels[unitId]; const card = document.createElement('div'); card.className = `unit-card rarity-${unit.rarity}`; card.dataset.unitId = unitId; card.innerHTML = `<div class="card-icon">${unit.icon}</div><div class="card-name">${unit.name}</div>`; if (unitData && unitData.level) { const levelDiv = document.createElement('div'); levelDiv.className = 'card-level'; let levelText = `Lv.${unitData.level}`; const totalEnchants = (unitData.enchantments?.hp || 0) + (unitData.enchantments?.atk || 0); if (totalEnchants > 0) { levelText += ` (+${totalEnchants})` } levelDiv.textContent = levelText; card.appendChild(levelDiv); } return card; }
+    function showUpgradeModal(unitId) { const stats = getUnitStats(unitId); const cost = getUpgradeCost(stats.level); document.getElementById('modal-unit-name').textContent = `${stats.name} (Lv.${stats.level})`; document.getElementById('modal-unit-icon').textContent = stats.icon; document.getElementById('modal-stats').innerHTML = `<p><b>生命值:</b> ${stats.hp}</p><p><b>攻擊力:</b> ${stats.atk}</p><p><b>攻擊距離:</b> ${stats.range}</p><p><b>花費:</b> ${stats.cost}</p>`; const upgradeBtn = document.getElementById('modal-upgrade-btn'); upgradeBtn.textContent = `升級 (花費 ${cost} XP)`; upgradeBtn.classList.toggle('disabled', playerState.xp < cost); upgradeBtn.onclick = () => handleUpgradeUnit(unitId); renderEnchantmentSection(unitId); document.getElementById('upgrade-modal-overlay').style.display = 'flex'; }
+    function renderEnchantmentSection(unitId) { const unitData = playerState.unitLevels[unitId]; const unitRarity = ALL_UNITS[unitId].rarity; const costPerEnchant = ENCHANTMENT_CONFIG.cost[unitRarity]; const enchantArea = document.getElementById('enchant-stats-area'); const canEnchantHp = unitData.enchantments.hp < ENCHANTMENT_CONFIG.maxLevel; const canEnchantAtk = unitData.enchantments.atk < ENCHANTMENT_CONFIG.maxLevel; const canAfford = playerState.magicStones >= costPerEnchant; enchantArea.innerHTML = ` <div class="enchant-stat-row"> <span class="stat-name">生命附魔 (+${(unitData.enchantments.hp * ENCHANTMENT_CONFIG.hpPerLevel * 100).toFixed(0)}%)</span> <span class="stat-value">${unitData.enchantments.hp} / ${ENCHANTMENT_CONFIG.maxLevel}</span> <button class="enchant-btn ${(!canEnchantHp || !canAfford) ? 'disabled' : ''}" onclick="handleEnchant('${unitId}', 'hp')"> +1 (${costPerEnchant}💎) </button> </div> <div class="enchant-stat-row"> <span class="stat-name">攻擊附魔 (+${(unitData.enchantments.atk * ENCHANTMENT_CONFIG.atkPerLevel * 100).toFixed(0)}%)</span> <span class="stat-value">${unitData.enchantments.atk} / ${ENCHANTMENT_CONFIG.maxLevel}</span> <button class="enchant-btn ${(!canEnchantAtk || !canAfford) ? 'disabled' : ''}" onclick="handleEnchant('${unitId}', 'atk')"> +1 (${costPerEnchant}💎) </button> </div> `; }
+    window.handleEnchant = function(unitId, statType) { const unitData = playerState.unitLevels[unitId]; const unitRarity = ALL_UNITS[unitId].rarity; const cost = ENCHANTMENT_CONFIG.cost[unitRarity]; if (playerState.magicStones >= cost && unitData.enchantments[statType] < ENCHANTMENT_CONFIG.maxLevel) { playerState.magicStones -= cost; unitData.enchantments[statType]++; saveGame(); updateTopBar(); showUpgradeModal(unitId); } }
+    function closeUpgradeModal() { document.getElementById('upgrade-modal-overlay').style.display = 'none'; renderDeckEditor(); }
+    async function handleUpgradeUnit(unitId) { const unitData = playerState.unitLevels[unitId]; const cost = getUpgradeCost(unitData.level); if (playerState.xp < cost) return; updateMissionProgress('upgrade_unit', 1); playerState.xp -= cost; unitData.level++; saveGame(); updateTopBar(); const modalContent = document.getElementById('upgrade-modal-content'); const effect = document.createElement('div'); effect.id = 'modal-level-up-effect'; effect.textContent = 'LVL UP!'; modalContent.appendChild(effect); setTimeout(() => effect.remove(), 1000); await sleep(100); showUpgradeModal(unitId); }
+    function renderStageSelect() { const list = document.getElementById('stage-list'); list.innerHTML = ''; for (const stageId in STAGE_CONFIG) { const stage = STAGE_CONFIG[stageId]; const btn = document.createElement('button'); btn.className = 'stage-button'; let dropsHTML = ''; const dropItems = []; if (stage.treasureDrop) { const treasure = TREASURES[stage.treasureDrop.id]; const isOwned = playerState.treasures[stage.treasureDrop.id]; dropItems.push(`${isOwned ? '✅' : '❓'} ${treasure.icon}`); } if (stage.stoneDrop) { dropItems.push(`💎x${stage.stoneDrop.amount}`); } if (dropItems.length > 0) { dropsHTML = `<div class="stage-drops">${dropItems.join(' ')}</div>`; } btn.innerHTML = ` <div> <h3>${stageId}. ${stage.name}</h3> <div class="stage-reward">獎勵: ${stage.reward.food}🥫 ${stage.reward.xp}🌟</div> </div> ${dropsHTML} `; btn.addEventListener('click', () => startStage(stageId)); list.appendChild(btn); } }
+    function renderTreasureScreen() { const grid = document.getElementById('treasure-grid'); grid.innerHTML = ''; for (const treasureId in TREASURES) { const treasure = TREASURES[treasureId]; const isOwned = playerState.treasures[treasureId]; const card = document.createElement('div'); card.className = `treasure-card ${isOwned ? 'owned' : ''}`; let ownedTag = isOwned ? '<div class="treasure-owned-tag">已獲得</div>' : ''; card.innerHTML = ` ${ownedTag} <div class="treasure-icon">${treasure.icon}</div> <div class="treasure-name">${treasure.name}</div> <div class="treasure-desc">${treasure.desc}</div> `; grid.appendChild(card); } }
+    function renderBaseUpgradeScreen() { const cannonLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[cannonLevel - 1]; const nextStats = CANNON_CONFIG[cannonLevel]; const display = document.getElementById('cannon-stats-display'); const upgradeBtn = document.getElementById('upgrade-cannon-btn'); let statsHTML = ` <div class="stat-block">等級: ${currentStats.level}</div> <div class="stat-block">傷害: ${currentStats.damage}</div> <div class="stat-block">擊退: ${currentStats.knockback}</div> <div class="stat-block">充能: ${currentStats.chargeTimeSec}s</div> `; if (nextStats && currentStats.upgradeCost !== Infinity) { statsHTML += ` <div class="stat-block arrow">→</div> <div class="stat-block" style="color:#2ecc71">Lv.${nextStats.level}</div> `; upgradeBtn.textContent = `升級 (花費 ${currentStats.upgradeCost} XP)`; upgradeBtn.classList.toggle('disabled', playerState.xp < currentStats.upgradeCost); upgradeBtn.onclick = handleUpgradeCannon; } else { upgradeBtn.textContent = '已達最高等級'; upgradeBtn.classList.add('disabled'); upgradeBtn.onclick = null; } display.innerHTML = statsHTML; }
+    function handleUpgradeCannon() { const currentLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[currentLevel - 1]; if (playerState.xp >= currentStats.upgradeCost) { playerState.xp -= currentStats.upgradeCost; playerState.catCannon.level++; saveGame(); updateTopBar(); renderBaseUpgradeScreen(); } else { alert('XP 不足！'); } }
+    function startStage(stageId) { if (playerState.deck.length === 0) { alert("隊伍中沒有任何貓咪！請先到「隊伍編成」畫面設定隊伍。"); return; } const stage = STAGE_CONFIG[stageId]; let cannonLevelData = { ...CANNON_CONFIG[playerState.catCannon.level - 1] }; let moneyConfig = JSON.parse(JSON.stringify(MONEY_LEVEL_CONFIG)); let playerBaseHp = 3000; if (playerState.treasures['grass_amulet']) { moneyConfig.forEach(level => level.max += TREASURES['grass_amulet'].effect.value); } if (playerState.treasures['cave_crystal']) { moneyConfig.forEach(level => level.rate = Math.round(level.rate * TREASURES['cave_crystal'].effect.value)); } if (playerState.treasures['volcano_heart']) { cannonLevelData.chargeTimeSec *= TREASURES['volcano_heart'].effect.value; } if (playerState.treasures['cosmic_map']) { playerBaseHp = Math.round(playerBaseHp * TREASURES['cosmic_map'].effect.value); } if (playerState.treasures['steel_blueprint']) { cannonLevelData.damage = Math.round(cannonLevelData.damage * TREASURES['steel_blueprint'].effect.value); } battleState = { stageId, nextInstanceId: 0, moneyLevel: 0, money: 200, playerBaseHp: playerBaseHp, maxPlayerBaseHp: playerBaseHp, enemyBaseHp: stage.enemyBaseHp, maxEnemyBaseHp: stage.enemyBaseHp, playerUnits: [], enemyUnits: [], enemySpawnQueue: stage.enemies.map(e => ({ ...e, time: e.time * 1000 })).sort((a, b) => a.time - b.time), isGameOver: false, battleSpeed: 1, lastFrameTime: performance.now(), gameTime: 0, isPaused: false, catCannonData: cannonLevelData, catCannonMaxCharge: cannonLevelData.chargeTimeSec * 1000, catCannonCharge: 0, moneyLevelConfig: moneyConfig, totalMoneySpent: 0, enemiesKilled: 0 }; document.getElementById('speed-toggle-btn').textContent = '1x'; updateCannonUI(); const battlefield = document.getElementById('battlefield'); battlefield.className = 'battlefield'; if (stage.background) { battlefield.classList.add(stage.background); } setupBattlefield(); switchScreen('battle-screen'); gameLoopId = requestAnimationFrame(gameLoop); }
+    function setupBattlefield() { document.getElementById('battlefield').innerHTML = `<div id="time-stop-overlay"></div><div id="player-base" class="base"><div class="base-icon">🏰</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div><div id="enemy-base" class="base"><div class="base-icon">🏯</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div>`; updateDeploymentBar(); updateBattleMoneyUI(); updateBaseHealth(); }
+    function updateDeploymentBar() { const bar = document.getElementById('deployment-bar'); bar.innerHTML = ''; const sortedDeck = [...playerState.deck].sort((a, b) => getUnitDeployCost(a) - getUnitDeployCost(b)); sortedDeck.forEach(unitId => { const unitData = playerState.unitLevels[unitId]; const unit = ALL_UNITS[unitId]; const cost = getUnitDeployCost(unitId); const btn = document.createElement('button'); btn.className = 'deploy-button'; btn.dataset.cost = cost; btn.innerHTML = `<div class="card-level" style="font-size:10px;top:2px;right:2px;">Lv.${unitData.level}</div><div class="card-icon" style="font-size:30px;">${unit.icon}</div><div style="font-size:12px; font-weight:bold;">${unit.name}</div><div class="deploy-cost" style="font-size:14px;">$${cost}</div>`; btn.addEventListener('click', () => deployUnit(unitId)); bar.appendChild(btn); }); }
+    function gameLoop(currentTime) { if (battleState.isGameOver || battleState.isPaused) return; const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed; battleState.lastFrameTime = currentTime; battleState.gameTime += deltaTime; const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; if (!battleState.lastMoneyUpdate || battleState.gameTime - battleState.lastMoneyUpdate > 1000) { battleState.money = Math.min(moneyConfig.max, battleState.money + moneyConfig.rate); battleState.lastMoneyUpdate = battleState.gameTime; updateBattleMoneyUI(); } if (battleState.catCannonCharge < battleState.catCannonMaxCharge) { battleState.catCannonCharge += deltaTime; updateCannonUI(); } if (battleState.enemySpawnQueue.length > 0 && battleState.gameTime >= battleState.enemySpawnQueue[0].time) { const enemyToSpawn = battleState.enemySpawnQueue.shift(); spawnUnit(enemyToSpawn.type, 'enemy'); } const allUnits = [...battleState.playerUnits, ...battleState.enemyUnits]; for (const unit of allUnits) { unit.element.classList.remove('buffed', 'weakened'); if (unit.buffUntil && unit.buffUntil > currentTime) { unit.element.classList.add('buffed'); } if (unit.weakenUntil && unit.weakenUntil > currentTime) { unit.element.classList.add('weakened'); } if (unit.frozenUntil && currentTime < unit.frozenUntil) { unit.element.classList.add('frozen'); continue; } else { unit.element.classList.remove('frozen'); unit.frozenUntil = null; } const unitData = unit.team === 'player' ? getUnitStats(unit.id) : ENEMY_UNITS[unit.id]; const actionInterval = (unitData.attackInterval || 1500) / battleState.battleSpeed; if (!unit.lastActionTime || currentTime - unit.lastActionTime > actionInterval) { let currentTarget = findUnitByInstanceId(unit.currentTargetId); if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) { unit.currentTargetId = null; const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits; let closestTarget = null, minDistance = Infinity; potentialTargets.forEach(target => { const distance = Math.abs(unit.x - target.x); if (distance <= unitData.range && distance < minDistance) { minDistance = distance; closestTarget = target; } }); if (closestTarget) { unit.currentTargetId = closestTarget.instanceId; currentTarget = closestTarget; } } if (currentTarget) { unit.isMoving = false; attack(unit, currentTarget, unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits, unitData, currentTime); } else { unit.isMoving = true; const basePos = unit.team === 'player' ? 700 : 100; if (Math.abs(unit.x - basePos) <= unitData.range) { unit.isMoving = false; attackBase(unit, unit.team === 'player' ? 'enemy' : 'player', unitData, currentTime); } } if (unitData.heal) { const healTargets = battleState.playerUnits.filter(p => p !== unit && p.hp < p.maxHp && Math.abs(p.x - unit.x) <= unitData.range); if (healTargets.length > 0) { unit.lastActionTime = currentTime; healTargets.forEach(target => { target.hp = Math.min(target.maxHp, target.hp + unitData.heal); createHealEffect(target.element, unitData.heal); updateUnitHealth(target); }); } } if (unitData.attackBuff) { const buffTargets = battleState.playerUnits.filter(p => p !== unit && Math.abs(p.x - unit.x) <= unitData.attackBuff.radius); if (buffTargets.length > 0) { unit.lastActionTime = currentTime; buffTargets.forEach(target => { target.buffUntil = currentTime + unitData.attackBuff.duration; target.buffMultiplier = unitData.attackBuff.multiplier; }); } } } if (unit.isMoving) { const speed = unitData.speed, direction = unit.team === 'player' ? 1 : -1; unit.x += speed * direction * (deltaTime / 16.67); } } updateUnitsPosition(); if (battleState.playerBaseHp <= 0) endGame(false); if (battleState.enemyBaseHp <= 0) endGame(true); if (!battleState.isGameOver) gameLoopId = requestAnimationFrame(gameLoop); }
+    function findUnitByInstanceId(id) { if (id == null) return null; return battleState.playerUnits.find(u => u.instanceId === id) || battleState.enemyUnits.find(u => u.instanceId === id); }
+    function attack(attacker, mainTarget, allTargets, attackerData, currentTime) { attacker.lastActionTime = currentTime; const targetData = mainTarget.team === 'player' ? getUnitStats(mainTarget.id) : ENEMY_UNITS[mainTarget.id]; if (targetData.dodgeChance && Math.random() < targetData.dodgeChance) { createDamageTextEffect(mainTarget.element, 'MISS', '#ffffff'); return; } if (targetData.blockChance && Math.random() < targetData.blockChance) { mainTarget.element.classList.add('blocking'); setTimeout(() => mainTarget.element.classList.remove('blocking'), 300); return; } if (attackerData.timeStop && Math.random() < attackerData.timeStop.chance) { showTimeStopEffect(); battleState.enemyUnits.forEach(enemy => enemy.frozenUntil = currentTime + attackerData.timeStop.duration); } if (attackerData.multiHit) { for (let i = 0; i < attackerData.multiHit.count; i++) { setTimeout(() => performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime), i * attackerData.multiHit.delay); } } else { performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime); } }
+    function performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime) { if (!mainTarget || mainTarget.hp <= 0) return; let actualAtk = attackerData.atk; if (attacker.buffUntil && attacker.buffUntil > currentTime) actualAtk *= attacker.buffMultiplier; let isCrit = false; if (attackerData.crit && Math.random() < attackerData.crit.chance) { actualAtk = Math.round(actualAtk * attackerData.crit.multiplier); isCrit = true; } const originalHp = mainTarget.hp; if (attackerData.splashRange) { allTargets.filter(t => t.hp > 0 && Math.abs(t.x - mainTarget.x) <= attackerData.splashRange).forEach(target => dealDamage(target, actualAtk, isCrit, attackerData, currentTime)); } else { dealDamage(mainTarget, actualAtk, isCrit, attackerData, currentTime); } const killedTarget = originalHp > 0 && mainTarget.hp <= 0; if (killedTarget && attackerData.moneyOnKill && Math.random() < attackerData.moneyOnKill.chance) { battleState.money = Math.min(battleState.moneyLevelConfig[battleState.moneyLevel].max, battleState.money + attackerData.moneyOnKill.amount); updateBattleMoneyUI(); } if (attackerData.waveAttack && Math.random() < attackerData.waveAttack.chance) { const direction = attacker.team === 'player' ? 1 : -1; const waveTargets = (attacker.team === 'player' ? battleState.enemyUnits : battleState.playerUnits).filter(u => direction * (u.x - attacker.x) > 0 && direction * (u.x - attacker.x) < attackerData.waveAttack.distance); waveTargets.forEach(target => setTimeout(() => dealDamage(target, actualAtk, false, {}, currentTime), 100)); } if (attackerData.freeze && Math.random() < attackerData.freeze.chance) { mainTarget.frozenUntil = currentTime + attackerData.freeze.duration; } if (attackerData.weaken && Math.random() < attackerData.weaken.chance) { mainTarget.weakenUntil = currentTime + attackerData.weaken.duration; mainTarget.weakenMultiplier = attackerData.weaken.multiplier; } }
+    function dealDamage(target, damage, isCrit, attackerData = {}, currentTime) { if (!target || target.hp <= 0) return; let finalDamage = damage; if (target.weakenUntil && target.weakenUntil > currentTime) { finalDamage *= target.weakenMultiplier; } finalDamage = Math.round(finalDamage); target.hp -= finalDamage; createDamageTextEffect(target.element, finalDamage, isCrit ? '#ff4757' : '#fff'); if (target.hp <= 0) { if (target.team === 'enemy') { updateMissionProgress('kill_enemies', 1); } removeUnit(target); } else { updateUnitHealth(target); } }
+    function attackBase(attacker, baseTeam, attackerData, currentTime) { attacker.lastActionTime = currentTime; const targetBaseElement = document.getElementById(`${baseTeam}-base`); let actualAtk = attackerData.atk; if (attacker.buffUntil && attacker.buffUntil > currentTime) actualAtk *= attacker.buffMultiplier; actualAtk = Math.round(actualAtk); createDamageTextEffect(targetBaseElement, actualAtk, false); if (baseTeam === 'enemy') { battleState.enemyBaseHp -= actualAtk; } else { battleState.playerBaseHp -= actualAtk; } updateBaseHealth(); }
+    function deployUnit(unitId) { const cost = getUnitDeployCost(unitId); if (battleState.money >= cost) { battleState.money -= cost; battleState.totalMoneySpent += cost; updateMissionProgress('spend_money', cost); updateBattleMoneyUI(); spawnUnit(unitId, 'player'); } }
+    function spawnUnit(id, team) { if (team === 'enemy' && !playerState.seenEnemies.has(id)) { playerState.seenEnemies.add(id); updateCollectionBookBadge(); saveGame(); } const isPlayer = team === 'player'; const unitData = isPlayer ? getUnitStats(id) : ENEMY_UNITS[id]; const element = document.createElement('div'); element.className = 'unit'; element.innerHTML = `<div>${unitData.icon}</div><div class="unit-health-bar"><div class="unit-health-bar-inner"></div></div>`; const unitInstance = { id, team, element, instanceId: battleState.nextInstanceId++, currentTargetId: null, hp: unitData.hp, maxHp: unitData.hp, x: isPlayer ? 100 : 700, isMoving: true, }; document.getElementById('battlefield').appendChild(element); if (isPlayer) battleState.playerUnits.push(unitInstance); else battleState.enemyUnits.push(unitInstance); }
+    function removeUnit(unitToRemove) { if (unitToRemove.element) unitToRemove.element.remove(); if (unitToRemove.team === 'player') battleState.playerUnits = battleState.playerUnits.filter(u => u.instanceId !== unitToRemove.instanceId); else battleState.enemyUnits = battleState.enemyUnits.filter(u => u.instanceId !== unitToRemove.instanceId); }
+    function endGame(isVictory) { battleState.isGameOver = true; cancelAnimationFrame(gameLoopId); const overlay = document.getElementById('game-over-overlay'); const title = document.getElementById('game-over-title'); const rewardText = document.getElementById('game-over-reward'); const treasureDropText = document.getElementById('game-over-treasure-drop'); treasureDropText.innerHTML = ''; if (isVictory) { const stage = STAGE_CONFIG[battleState.stageId]; let reward = stage.reward; let xpMultiplier = 1; if (playerState.treasures['dark_crown']) xpMultiplier = TREASURES['dark_crown'].effect.value; const finalXp = Math.round(reward.xp * xpMultiplier); playerState.catFood += reward.food; playerState.xp += finalXp; title.textContent = "勝利！"; let extraRewards = []; if (stage.stoneDrop && Math.random() < stage.stoneDrop.chance) { const amount = stage.stoneDrop.amount; playerState.magicStones += amount; extraRewards.push(`💎x${amount}`); } rewardText.textContent = `獲得 🥫x${reward.food}, 🌟x${finalXp}` + (extraRewards.length > 0 ? `, ${extraRewards.join(', ')}` : ''); updateMissionProgress('win_stages', 1); if (stage.treasureDrop && !playerState.treasures[stage.treasureDrop.id] && Math.random() < stage.treasureDrop.chance) { const treasureId = stage.treasureDrop.id; playerState.treasures[treasureId] = true; const treasure = TREASURES[treasureId]; treasureDropText.innerHTML = `✨ 獲得寶物：${treasure.name} ${treasure.icon} ✨`; } updateTopBar(); saveGame(); } else { title.textContent = "失敗..."; rewardText.textContent = `再接再厲！`; } overlay.classList.add('active'); }
+    function togglePause(pause) { battleState.isPaused = pause; document.getElementById('pause-overlay').style.display = pause ? 'flex' : 'none'; if (pause) { cancelAnimationFrame(gameLoopId); } else { battleState.lastFrameTime = performance.now(); gameLoopId = requestAnimationFrame(gameLoop); } }
+    function quitBattle() { battleState.isGameOver = true; cancelAnimationFrame(gameLoopId); togglePause(false); switchScreen('hub-screen'); }
+    function fireCatCannon() { if (battleState.catCannonCharge < battleState.catCannonMaxCharge || battleState.isPaused || battleState.isGameOver) return; const cannonStats = battleState.catCannonData; battleState.catCannonCharge = 0; updateCannonUI(); const laser = document.createElement('div'); laser.className = 'cannon-laser'; document.getElementById('battlefield').appendChild(laser); setTimeout(() => laser.remove(), 300); battleState.enemyUnits.forEach(enemy => { if (enemy.hp > 0) { dealDamage(enemy, cannonStats.damage, false, {}, performance.now()); const stillAliveEnemy = findUnitByInstanceId(enemy.instanceId); if (stillAliveEnemy) { stillAliveEnemy.x -= cannonStats.knockback; if (stillAliveEnemy.x < 100) stillAliveEnemy.x = 100; } } }); updateUnitsPosition(); }
+    function updateCannonUI() { const btn = document.getElementById('fire-cannon-btn'); const chargeBar = document.getElementById('cannon-charge-bar'); const chargePercentage = Math.min(100, (battleState.catCannonCharge / battleState.catCannonMaxCharge) * 100); chargeBar.style.height = `${chargePercentage}%`; btn.classList.toggle('disabled', chargePercentage < 100); }
+    function updateBattleMoneyUI() { const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; document.querySelector('#money-display').textContent = `金錢: $${battleState.money} / ${moneyConfig.max}`; document.querySelector('#money-level-display').textContent = `錢包 Lv: ${battleState.moneyLevel + 1}`; const upgradeBtn = document.getElementById('upgrade-money-btn'); const nextLevelConfig = battleState.moneyLevelConfig[battleState.moneyLevel + 1]; if (nextLevelConfig && nextLevelConfig.cost !== Infinity) { upgradeBtn.textContent = `升級 ($${nextLevelConfig.cost})`; upgradeBtn.classList.toggle('disabled', battleState.money < nextLevelConfig.cost); } else { upgradeBtn.textContent = '已滿級'; upgradeBtn.classList.add('disabled'); } document.querySelectorAll('.deploy-button').forEach(btn => { btn.classList.toggle('disabled', battleState.money < parseInt(btn.dataset.cost)); }); }
+    function handleUpgradeMoney() { const nextLevel = battleState.moneyLevel + 1; const nextLevelConfig = battleState.moneyLevelConfig[nextLevel]; if (nextLevelConfig) { const cost = nextLevelConfig.cost; if (battleState.money >= cost) { battleState.money -= cost; battleState.moneyLevel = nextLevel; updateBattleMoneyUI(); } } }
+    function toggleBattleSpeed() { if (battleState.battleSpeed === 1) { battleState.battleSpeed = 2; document.getElementById('speed-toggle-btn').textContent = '2x'; } else { battleState.battleSpeed = 1; document.getElementById('speed-toggle-btn').textContent = '1x'; } }
+    function createDamageTextEffect(targetElement, text, color) { const effect = document.createElement('div'); effect.className = 'damage-text'; effect.textContent = text; effect.style.color = color; const rect = targetElement.getBoundingClientRect(); const gameRect = document.getElementById('game-container').getBoundingClientRect(); effect.style.left = `${rect.left - gameRect.left + rect.width / 2 - 15}px`; effect.style.top = `${rect.top - gameRect.top + rect.height / 2 - 30}px`; document.getElementById('battlefield').appendChild(effect); setTimeout(() => effect.remove(), 800); }
+    function createHealEffect(targetElement, amount) { const effect = document.createElement('div'); effect.className = 'heal-effect'; effect.textContent = `+${amount}`; const rect = targetElement.getBoundingClientRect(); const gameRect = document.getElementById('game-container').getBoundingClientRect(); effect.style.left = `${rect.left - gameRect.left + rect.width / 2 - 15}px`; effect.style.top = `${rect.top - gameRect.top + rect.height / 2 - 30}px`; document.getElementById('battlefield').appendChild(effect); setTimeout(() => effect.remove(), 800); }
+    function showTimeStopEffect() { const overlay = document.getElementById('time-stop-overlay'); overlay.style.display = 'block'; setTimeout(() => { overlay.style.display = 'none'; }, 500); }
+    function updateUnitsPosition() { [...battleState.playerUnits, ...battleState.enemyUnits].forEach(unit => { if(unit.element) unit.element.style.left = `${unit.x - 20}px`; }); }
+    function updateUnitHealth(unit) { if (unit.element) { const healthPercentage = Math.max(0, (unit.hp / unit.maxHp) * 100); unit.element.querySelector('.unit-health-bar-inner').style.width = `${healthPercentage}%`; } }
+    function updateBaseHealth() { document.querySelector('#player-base .health-bar-inner').style.width = `${Math.max(0, (battleState.playerBaseHp / battleState.maxPlayerBaseHp) * 100)}%`; document.querySelector('#enemy-base .health-bar-inner').style.width = `${Math.max(0, (battleState.enemyBaseHp / battleState.maxEnemyBaseHp) * 100)}%`; }
+    function showDailyModal(show, defaultTab = 'missions') { const overlay = document.getElementById('daily-modal-overlay'); overlay.style.display = show ? 'flex' : 'none'; if (show) { renderDailyModal(); switchTab(defaultTab); } }
+    function renderDailyModal() { renderLoginRewards(); renderMissions(); updateNotificationBadge(); }
+    function renderLoginRewards() { const grid = document.getElementById('login-rewards-grid'); grid.innerHTML = ''; const streak = playerState.loginStreak; const lastClaimed = playerState.lastClaimedStreak || 0; for (let i = 0; i < 7; i++) { const day = i + 1; const reward = LOGIN_REWARDS[i]; const item = document.createElement('div'); item.className = 'login-reward-item'; if (day <= lastClaimed) { item.classList.add('claimed'); } else if (day <= streak) { item.classList.add('today'); item.style.cursor = 'pointer'; item.onclick = () => claimLoginReward(day); } item.innerHTML = ` <div class="day">第 ${day} 天</div> <div class="reward-icon">${reward.icon}</div> <div class="reward-text">+${reward.value} ${reward.type === 'food' ? '🥫' : '🌟'}</div> `; grid.appendChild(item); } }
+    function claimLoginReward(day) { if (day > playerState.loginStreak || day <= (playerState.lastClaimedStreak || 0)) return; const reward = LOGIN_REWARDS[day - 1]; if (reward.type === 'food') { playerState.catFood += reward.value; } else { playerState.xp += reward.value; } playerState.lastClaimedStreak = day; showToast(`領取成功！+${reward.value} ${reward.type === 'food' ? '罐頭' : 'XP'}`); updateTopBar(); renderLoginRewards(); saveGame(); }
+    function renderMissions() { const list = document.getElementById('mission-list'); list.innerHTML = ''; playerState.dailyMissions.forEach((mission, index) => { const template = MISSION_POOL.find(m => m.id === mission.id); if (!template) return; const item = document.createElement('div'); item.className = 'mission-item'; const canClaim = mission.progress >= mission.target && !mission.claimed; const reward = template.reward; const rewardIcon = reward.type === 'food' ? '🥫' : (reward.type === 'stones' ? '💎' : '🌟'); item.innerHTML = ` <div class="mission-desc">${template.text(mission.target)}</div> <div class="mission-progress">${mission.progress}/${mission.target}</div> <button class="mission-claim-btn ${canClaim ? '' : 'disabled'}" data-index="${index}"> ${rewardIcon} +${reward.value} </button> `; list.appendChild(item); }); }
+    function claimMission(index) { const mission = playerState.dailyMissions[index]; if (mission && mission.progress >= mission.target && !mission.claimed) { const template = MISSION_POOL.find(m => m.id === mission.id); const reward = template.reward; let rewardText = ''; if (reward.type === 'food') { playerState.catFood += reward.value; rewardText = `+${reward.value} 罐頭`; } else if (reward.type === 'xp') { playerState.xp += reward.value; rewardText = `+${reward.value} XP`; } mission.claimed = true; showToast(`任務完成！${rewardText}`); updateTopBar(); saveGame(); renderMissions(); updateNotificationBadge(); } }
+    function switchTab(tabName) { document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active'); document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active')); document.getElementById(`${tabName}-tab`).classList.add('active'); }
+    function renderCollectionBook() { renderCollectionGrid('player-units', ALL_UNITS, playerState.unlockedUnits, playerState.collectionRewards.units); renderCollectionGrid('enemy-units', ENEMY_UNITS, playerState.seenEnemies, playerState.collectionRewards.enemies); updateCollectionBookBadge(); }
+    function renderCollectionGrid(tabId, source, unlockedSet, claimedSet) { const grid = document.getElementById(`${tabId}-tab`); grid.innerHTML = ''; Object.keys(source).forEach(id => { const itemData = source[id]; const isUnlocked = unlockedSet.has(id); const isClaimed = claimedSet.has(id); const item = document.createElement('div'); item.className = `collection-item ${isUnlocked ? '' : 'locked'}`; item.innerHTML = ` <div class="item-icon">${isUnlocked ? itemData.icon : '❓'}</div> <div class="item-name">${isUnlocked ? itemData.name : '未發現'}</div> `; if (isUnlocked && !isClaimed) { const claimBtn = document.createElement('button'); claimBtn.className = 'reward-claim-button'; claimBtn.textContent = '🎁'; claimBtn.title = `領取 ${COLLECTION_REWARD_AMOUNT} 罐頭`; claimBtn.onclick = (e) => { e.stopPropagation(); claimCollectionReward(id, tabId.includes('player') ? 'units' : 'enemies'); }; item.appendChild(claimBtn); } grid.appendChild(item); }); }
+    function claimCollectionReward(id, type) { if (!playerState.collectionRewards[type].has(id)) { playerState.collectionRewards[type].add(id); playerState.catFood += COLLECTION_REWARD_AMOUNT; showToast(`領取成功！+${COLLECTION_REWARD_AMOUNT} 罐頭`); updateTopBar(); renderCollectionBook(); saveGame(); } }
+    function claimAllCollectionRewards() { let totalClaimed = 0; const types = ['units', 'enemies']; types.forEach(type => { const unlockedSet = type === 'units' ? playerState.unlockedUnits : playerState.seenEnemies; unlockedSet.forEach(id => { if (!playerState.collectionRewards[type].has(id)) { playerState.collectionRewards[type].add(id); totalClaimed++; } }); }); if (totalClaimed > 0) { const totalReward = totalClaimed * COLLECTION_REWARD_AMOUNT; playerState.catFood += totalReward; showToast(`一鍵領取 ${totalClaimed} 項獎勵，共獲得 ${totalReward} 罐頭！`); updateTopBar(); renderCollectionBook(); saveGame(); } else { showToast('沒有可領取的獎勵'); } }
+    function updateCollectionBookBadge() { let hasClaimable = false; playerState.unlockedUnits.forEach(id => { if (!playerState.collectionRewards.units.has(id)) hasClaimable = true; }); if (!hasClaimable) { playerState.seenEnemies.forEach(id => { if (!playerState.collectionRewards.enemies.has(id)) hasClaimable = true; }); } const badge = document.querySelector('#go-to-collection-book-button .notification-badge'); if(badge) badge.style.display = hasClaimable ? 'flex' : 'none'; }
+    function renderShopScreen() { const grid = document.getElementById('shop-grid'); grid.innerHTML = ''; for (const itemId in SHOP_ITEMS) { const item = SHOP_ITEMS[itemId]; const card = document.createElement('div'); card.className = 'shop-item-card'; const buyBtn = document.createElement('button'); buyBtn.className = 'shop-buy-btn'; buyBtn.textContent = `購買 (${item.cost} 🥫)`; buyBtn.onclick = () => handlePurchase(itemId); if (playerState.catFood < item.cost) { buyBtn.classList.add('disabled'); } const rewardIcon = item.reward.type === 'xp' ? '🌟' : '💎'; const rewardText = `${rewardIcon} +${item.reward.value.toLocaleString()}`; card.innerHTML = ` <div class="shop-item-icon">${item.icon}</div> <div class="shop-item-name">${item.name}</div> <div class="shop-item-reward">${rewardText}</div> <div class="shop-item-desc">${item.desc}</div> `; const buySection = document.createElement('div'); buySection.className = 'shop-item-buy-section'; buySection.appendChild(buyBtn); card.appendChild(buySection); grid.appendChild(card); } }
+    function handlePurchase(itemId) { const item = SHOP_ITEMS[itemId]; if (playerState.catFood < item.cost) { showToast('貓罐頭不足！'); return; } playerState.catFood -= item.cost; let rewardText = ''; if (item.reward.type === 'xp') { playerState.xp += item.reward.value; rewardText = `+${item.reward.value.toLocaleString()} 🌟`; } else if (item.reward.type === 'magicStones') { playerState.magicStones += item.reward.value; rewardText = `+${item.reward.value.toLocaleString()} 💎`; } showToast(`購買成功！ ${rewardText}`); updateTopBar(); saveGame(); renderShopScreen(); }
+    function toggleFullscreen() { const gameContainer = document.getElementById('game-container'); if (!document.fullscreenElement) { gameContainer.requestFullscreen().catch(err => { alert(`無法進入全螢幕模式: ${err.message} (${err.name})`); }); } else { document.exitFullscreen(); } }
+    function showMenuModal(show) { document.getElementById('menu-modal-overlay').style.display = show ? 'flex' : 'none'; }
+    
+    function init() { loadGame(); setupEventListeners(); updateTopBar(); switchScreen('start-screen'); }
+    init();
+});
+</script>
+</body>
+</html>
