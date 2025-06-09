@@ -563,7 +563,20 @@
         <div id="gacha-animation-overlay"><div id="gacha-gate"></div></div>
         <div id="daily-modal-overlay" class="modal-overlay"> <div id="daily-modal-content" class="modal-content"> <button id="modal-close-btn" class="daily-modal-close">×</button> <div class="modal-tabs"> <button class="tab-button active" data-tab="login">登入獎勵</button> <button class="tab-button" data-tab="missions">每日任務</button> </div> <div id="login-tab" class="tab-content active"> <h3>7日登入獎勵</h3> <div id="login-rewards-grid"></div> </div> <div id="missions-tab" class="tab-content"> <h3>每日任務</h3> <div id="mission-list"></div> </div> </div> </div>
         <div id="upgrade-modal-overlay" class="modal-overlay"> <div id="upgrade-modal-content" class="modal-content"> <button id="modal-close-btn" class="upgrade-modal-close">×</button> <h2 id="modal-unit-name"></h2> <div id="modal-unit-icon"></div> <div id="modal-stats"></div> <button id="modal-upgrade-btn"></button> <div id="enchantment-section"> <h3>魔法附魔</h3> <div id="enchant-stats-area"></div> </div> </div> </div>
-        <div id="settings-overlay" class="screen"> <div id="settings-panel"> <h2>設定</h2> <div class="settings-row"> <label for="volume-slider">背景音樂音量</label> <input type="range" id="volume-slider" min="0" max="1" step="0.05"> </div> <button id="reset-game-button" class="back-button">重置遊戲進度</button> </div> </div>
+        
+        <!-- ++ MODIFIED: 在設定面板中加入匯出/匯入按鈕 ++ -->
+        <div id="settings-overlay" class="screen">
+            <div id="settings-panel">
+                <h2>設定</h2>
+                <div class="settings-row">
+                    <label for="volume-slider">背景音樂音量</label>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.05">
+                </div>
+                <button id="export-save-button" class="hub-button" style="width: 100%; margin-top: 20px; background: linear-gradient(145deg, #2ecc71, #27ae60); border-bottom-color: #1e8449;">匯出存檔</button>
+                <button id="import-save-button" class="hub-button" style="width: 100%; margin-top: 10px; background: linear-gradient(145deg, #3498db, #2980b9); border-bottom-color: #20638f;">匯入存檔</button>
+                <button id="reset-game-button" class="back-button" style="position: static; transform: none;">重置遊戲進度</button>
+            </div>
+        </div>
         
         <div id="menu-modal-overlay" class="modal-overlay">
             <div class="modal-content">
@@ -617,20 +630,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasShownLoginReward = false;
     let isUpgradeMode = false;
 
-    // ++ NEW: 版本控制變數 ++
     const GAME_VERSION = '9.9';
     const SAVE_KEY = 'catBrawlSaveData_v9.9';
     const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-    // ... (makeScrollable 函數及其他大部分函數保持不變) ...
-    // ++ MODIFIED: 將 `saveGame` 和 `loadGame` 函數移到一起，並加入遷移邏輯 ++
     function showToast(message) { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'toast-message'; toast.textContent = message; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
-
-    // ++ MODIFIED: 儲存遊戲時寫入版本號 ++
+    
     function saveGame() {
         const stateToSave = {
             ...playerState,
-            version: GAME_VERSION, // 將當前遊戲版本寫入存檔
+            version: GAME_VERSION,
             unlockedUnits: [...playerState.unlockedUnits],
             seenEnemies: [...playerState.seenEnemies],
             collectionRewards: {
@@ -644,23 +653,15 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('儲存失敗:', e);
         }
     }
-
-    // ++ NEW: 存檔遷移函數 ++
+    
     function migrateSaveData(loadedState) {
-        const fromVersion = loadedState.version || '0'; // 如果存檔沒有版本號，視為最舊版 '0'
-
+        const fromVersion = loadedState.version || '0'; 
         if (fromVersion === GAME_VERSION) {
-            return loadedState; // 版本相同，無需遷移
+            return loadedState;
         }
-
         console.log(`正在從版本 ${fromVersion} 遷移存檔到 ${GAME_VERSION}...`);
-
-        // 使用 switch 的 fall-through 特性來處理跨版本更新
-        // 例如，一個 v9.8 的玩家更新到 v10.0，會先跑 9.8 -> 9.9 的更新，再跑 9.9 -> 10.0 的更新
         switch (fromVersion) {
-            case '0': // 代表任何沒有版本號的舊存檔
-                // 對於從無版本號到 9.9 的遷移，目前沒有需要做的破壞性變更。
-                // 這裡的程式碼主要用於示範，並確保舊存檔擁有新版本所需的所有欄位。
+            case '0':
                 if (typeof loadedState.magicStones === 'undefined') {
                     loadedState.magicStones = 0;
                     console.log("  - 已應用 v9.9 遷移: 初始化 magicStones");
@@ -669,30 +670,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadedState.catCannon = { level: 1 };
                      console.log("  - 已應用 v9.9 遷移: 初始化 catCannon");
                 }
-                // fall-through (讓它可以繼續執行後續版本的遷移)
-            
-            // case '9.9':
-            //     // 未來更新到 v10.0 時，可以在這裡添加遷移邏輯
-            //     // loadedState.newProperty = 'defaultValue';
-            //     // console.log("  - 已應用 v10.0 遷移");
-            //     // break;
         }
-
-        // 更新完畢後，將存檔的版本號也更新為最新版
         loadedState.version = GAME_VERSION;
         console.log("存檔遷移完成！");
         return loadedState;
     }
-
-    // ++ MODIFIED: 讀取遊戲時，先進行遷移 ++
+    
     function loadGame() {
         const savedData = localStorage.getItem(SAVE_KEY);
         if (savedData) {
             let loadedState = JSON.parse(savedData);
-
-            // 在載入狀態前，先呼叫遷移函數
             loadedState = migrateSaveData(loadedState);
-
             playerState = { ...playerState, ...loadedState };
             playerState.unlockedUnits = new Set(loadedState.unlockedUnits || []);
             playerState.seenEnemies = new Set(loadedState.seenEnemies || []);
@@ -705,7 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
             playerState.treasures = { ...loadedState.treasures };
             playerState.dailyMissions = loadedState.dailyMissions || [];
             
-            // 舊的 level 格式相容性處理 (這個可以保留，作為一種向下相容)
             for (const unitId in playerState.unitLevels) {
                 if (typeof playerState.unitLevels[unitId] === 'number') {
                     playerState.unitLevels[unitId] = {
@@ -714,23 +701,118 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                 }
             }
-
             if (!playerState.deck) {
                 playerState.deck = Object.keys(playerState.unitLevels).slice(0, DECK_SIZE_LIMIT);
             }
         } else {
-            // 全新玩家
             initializeUnit('cat_basic');
             playerState.deck = Object.keys(playerState.unitLevels);
         }
         handleDailyReset();
     }
     
-    // ... (其餘所有遊戲邏輯函數保持不變) ...
+    // ++ NEW: 匯出/匯入函數 ++
+    function exportSave() {
+        try {
+            const stateString = localStorage.getItem(SAVE_KEY);
+            if (stateString) {
+                navigator.clipboard.writeText(stateString);
+                alert('存檔碼已複製到剪貼簿！請將它貼到記事本中妥善保管。');
+            } else {
+                alert('找不到存檔！');
+            }
+        } catch (err) {
+            console.error('複製失敗:', err);
+            prompt('您的瀏覽器不支援自動複製，請手動複製以下所有文字：', localStorage.getItem(SAVE_KEY));
+        }
+    }
+
+    function importSave() {
+        const stateString = prompt('請貼上您的存檔碼：');
+        if (stateString) {
+            try {
+                const tempState = JSON.parse(stateString);
+                if (tempState && tempState.catFood !== undefined && tempState.version) {
+                    if (confirm('偵測到有效的存檔。匯入將會覆蓋目前的遊戲進度，確定要繼續嗎？')) {
+                        localStorage.setItem(SAVE_KEY, stateString);
+                        alert('匯入成功！遊戲將會重新載入。');
+                        location.reload();
+                    }
+                } else {
+                    alert('存檔碼格式錯誤！');
+                }
+            } catch (err) {
+                alert('匯入失敗！存檔碼可能已損毀。');
+                console.error('匯入錯誤:', err);
+            }
+        }
+    }
+    
     function makeScrollable(container) { container.classList.add('draggable-scroll'); container.addEventListener('wheel', (e) => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { return; } e.preventDefault(); container.scrollLeft += e.deltaY; }); let isDown = false; let startX; let scrollLeft; let isDragging = false; container.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isDown = true; isDragging = false; container.classList.add('active-drag'); startX = e.pageX - container.offsetLeft; scrollLeft = container.scrollLeft; }); const endDrag = () => { if (!isDown) return; isDown = false; container.classList.remove('active-drag'); }; container.addEventListener('mouseleave', endDrag); container.addEventListener('mouseup', endDrag); container.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - container.offsetLeft; const walk = x - startX; if (Math.abs(walk) > 5) { isDragging = true; } if (isDragging) { container.scrollLeft = scrollLeft - walk; } }); container.addEventListener('click', (e) => { if (isDragging) { e.preventDefault(); e.stopPropagation(); } }, true); }
     async function handleGachaPull(count, poolType, poolIndex = -1) { let config, rateUpUnits = []; if (poolType === 'normal') { config = POOL_CONFIG.normal; } else { const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool }; rateUpUnits = currentPool.rateUp; } const cost = count === 1 ? config.costSingle : config.costTen; if (playerState.catFood < cost) { showToast('貓罐頭不足！'); return; } document.getElementById('gacha-pull-1').disabled = true; document.getElementById('gacha-pull-10').disabled = true; updateMissionProgress('pull_gacha', count); playerState.catFood -= cost; const results = []; let highestRarity = 'N'; const rarityOrder = { N: 0, R: 1, SSR: 2, UR: 3 }; for (let i = 0; i < count; i++) { let rand = Math.random(), chosenRarity, cumulativeProb = 0; for (const rarity in RARITY_CONFIG) { cumulativeProb += RARITY_CONFIG[rarity].prob; if (rand < cumulativeProb) { chosenRarity = rarity; break; } } if (poolType === 'normal' && chosenRarity === 'UR') chosenRarity = 'SSR'; let unitId; const potentialRateUp = rateUpUnits.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); if (potentialRateUp.length > 0 && Math.random() < 0.5) { unitId = potentialRateUp[Math.floor(Math.random() * potentialRateUp.length)]; } else { const availableUnits = config.units.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); unitId = availableUnits.length > 0 ? availableUnits[Math.floor(Math.random() * availableUnits.length)] : 'cat_basic'; } const isNew = initializeUnit(unitId); if (!isNew) { const conversion = DUPLICATE_CONVERSION[ALL_UNITS[unitId].rarity]; playerState.xp += conversion.xp; playerState.catFood += conversion.food; } results.push({ id: unitId, isNew: isNew }); if (rarityOrder[chosenRarity] > rarityOrder[highestRarity]) { highestRarity = chosenRarity; } } updateTopBar(); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; const gachaGate = document.getElementById('gacha-gate'); gachaGate.className = 'gacha-gate'; let waitTime = 1500; if (highestRarity === 'UR') { gachaGate.classList.add('ur-mode'); waitTime = 3000; } else if (highestRarity === 'SSR') { gachaGate.classList.add('ssr-mode'); waitTime = 2000; } document.getElementById('gacha-animation-overlay').style.display = 'flex'; await sleep(waitTime); document.getElementById('gacha-animation-overlay').style.display = 'none'; const container = document.getElementById('gacha-results'); container.innerHTML = ''; for (const result of results) { const resultContainer = document.createElement('div'); resultContainer.className = 'gacha-card-container'; const card = createUnitCard(result.id); const feedback = document.createElement('div'); feedback.className = 'gacha-card-feedback'; if (result.isNew) { feedback.classList.add('feedback-new'); feedback.textContent = 'NEW!'; } else { const conv = DUPLICATE_CONVERSION[ALL_UNITS[result.id].rarity]; feedback.classList.add('feedback-dupe'); feedback.textContent = `+${conv.xp} XP, +${conv.food}🥫`; } resultContainer.appendChild(card); resultContainer.appendChild(feedback); container.appendChild(resultContainer); const rarity = ALL_UNITS[result.id].rarity; if (rarity === 'SSR' || rarity === 'UR') { resultContainer.classList.add('rare-reveal-animation'); await sleep(800); } else { resultContainer.classList.add('reveal-animation'); await sleep(200); } } document.getElementById('gacha-pull-1').disabled = false; document.getElementById('gacha-pull-10').disabled = false; saveGame(); }
     function renderDeckEditor() { updateUpgradeModeUI(); document.getElementById('deck-count').textContent = playerState.deck.length; document.getElementById('deck-limit').textContent = DECK_SIZE_LIMIT; const deckDisplay = document.getElementById('current-deck-display'); const ownedGrid = document.getElementById('owned-units-grid'); deckDisplay.innerHTML = ''; ownedGrid.innerHTML = ''; playerState.deck.forEach(unitId => { const card = createUnitCard(unitId); card.addEventListener('click', () => { handleDeckChange(unitId, 'remove'); }); card.addEventListener('dblclick', (e) => { e.stopPropagation(); showUpgradeModal(unitId); }); deckDisplay.appendChild(card); }); for (let i = playerState.deck.length; i < DECK_SIZE_LIMIT; i++) { const slot = document.createElement('div'); slot.className = 'deck-slot'; deckDisplay.appendChild(slot); } Object.keys(playerState.unitLevels).sort((a, b) => ALL_UNITS[b].rarity.localeCompare(ALL_UNITS[a].rarity) || getUnitDeployCost(a) - getUnitDeployCost(b)).forEach(unitId => { const card = createUnitCard(unitId); if (playerState.deck.includes(unitId)) { card.classList.add('in-deck'); } card.addEventListener('click', () => { if (isUpgradeMode) { showUpgradeModal(unitId); } else { handleDeckChange(unitId, 'toggle'); } }); ownedGrid.appendChild(card); }); }
-    function setupEventListeners() { document.getElementById('start-screen').addEventListener('click', () => { initBgm(); switchScreen('hub-screen'); }, { once: true }); document.getElementById('go-to-stages-button').addEventListener('click', () => { renderStageSelect(); switchScreen('stage-select-screen'); }); document.getElementById('go-to-gacha-button').addEventListener('click', () => { showPoolSelection(); switchScreen('gacha-screen'); }); document.getElementById('go-to-collection-button').addEventListener('click', () => { showMenuModal(false); renderDeckEditor(); switchScreen('collection-screen'); }); document.getElementById('go-to-base-upgrades-button').addEventListener('click', () => { showMenuModal(false); renderBaseUpgradeScreen(); switchScreen('base-upgrade-screen'); }); document.getElementById('go-to-treasures-button').addEventListener('click', () => { showMenuModal(false); renderTreasureScreen(); switchScreen('treasure-screen'); }); document.getElementById('go-to-daily-button').addEventListener('click', () => { showMenuModal(false); showDailyModal(true); }); document.getElementById('go-to-collection-book-button').addEventListener('click', () => { showMenuModal(false); const collectionBookScreen = document.getElementById('collection-book-screen'); collectionBookScreen.querySelector('.tab-button[data-tab="player-units"]').classList.add('active'); collectionBookScreen.querySelector('.tab-button[data-tab="enemy-units"]').classList.remove('active'); document.getElementById('player-units-tab').classList.add('active'); document.getElementById('enemy-units-tab').classList.remove('active'); renderCollectionBook(); switchScreen('collection-book-screen'); }); document.getElementById('go-to-shop-button').addEventListener('click', () => { showMenuModal(false); renderShopScreen(); switchScreen('shop-screen'); }); document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen); document.getElementById('go-to-menu-button').addEventListener('click', () => showMenuModal(true)); const menuModalOverlay = document.getElementById('menu-modal-overlay'); menuModalOverlay.querySelector('.menu-modal-close').addEventListener('click', () => showMenuModal(false)); menuModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'menu-modal-overlay') showMenuModal(false); }); document.getElementById('back-to-hub-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); }); document.getElementById('stage-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('gacha-main-back-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); }); document.getElementById('gacha-pool-back-button').addEventListener('click', showPoolSelection); document.getElementById('collection-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('base-upgrade-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('treasure-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('collection-book-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('shop-back-button').addEventListener('click', () => switchScreen('hub-screen')); document.getElementById('upgrade-money-btn').addEventListener('click', handleUpgradeMoney); document.getElementById('speed-toggle-btn').addEventListener('click', toggleBattleSpeed); document.getElementById('pause-btn').addEventListener('click', () => togglePause(true)); document.getElementById('resume-btn').addEventListener('click', () => togglePause(false)); document.getElementById('quit-battle-btn').addEventListener('click', quitBattle); document.getElementById('fire-cannon-btn').addEventListener('click', fireCatCannon); document.getElementById('settings-button').addEventListener('click', () => showSettings(true)); document.getElementById('settings-overlay').addEventListener('click', (e) => { if (e.target.id === 'settings-overlay') showSettings(false); }); document.getElementById('volume-slider').addEventListener('input', (e) => setVolume(e.target.value)); document.getElementById('reset-game-button').addEventListener('click', resetGame); const upgradeModalOverlay = document.getElementById('upgrade-modal-overlay'); upgradeModalOverlay.querySelector('.upgrade-modal-close').addEventListener('click', closeUpgradeModal); upgradeModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'upgrade-modal-overlay') closeUpgradeModal(); }); const dailyModalOverlay = document.getElementById('daily-modal-overlay'); dailyModalOverlay.querySelector('.daily-modal-close').addEventListener('click', () => showDailyModal(false)); dailyModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'daily-modal-overlay') showDailyModal(false); }); dailyModalOverlay.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => switchTab(btn.dataset.tab)); }); dailyModalOverlay.querySelector('#mission-list').addEventListener('click', (e) => { if (e.target.classList.contains('mission-claim-btn')) { claimMission(parseInt(e.target.dataset.index)); } }); const collectionBookScreen = document.getElementById('collection-book-screen'); collectionBookScreen.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => { collectionBookScreen.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); collectionBookScreen.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active'); }); }); document.getElementById('claim-all-rewards-btn').addEventListener('click', claimAllCollectionRewards); document.getElementById('toggle-upgrade-mode-btn').addEventListener('click', () => { isUpgradeMode = !isUpgradeMode; updateUpgradeModeUI(); renderDeckEditor(); }); document.getElementById('normal-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('normal'); }); document.getElementById('limited-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('limited'); }); const gachaRatesModal = document.getElementById('gacha-rates-modal-overlay'); gachaRatesModal.querySelector('.gacha-rates-modal-close').addEventListener('click', hideGachaRatesModal); gachaRatesModal.addEventListener('click', (e) => { if (e.target.id === 'gacha-rates-modal-overlay') { hideGachaRatesModal(); } }); makeScrollable(document.getElementById('current-deck-display')); makeScrollable(document.getElementById('owned-units-grid')); makeScrollable(document.getElementById('deployment-bar')); }
+    
+    // ++ MODIFIED: 加入匯出/匯入的事件監聽 ++
+    function setupEventListeners() {
+        document.getElementById('start-screen').addEventListener('click', () => { initBgm(); switchScreen('hub-screen'); }, { once: true });
+        document.getElementById('go-to-stages-button').addEventListener('click', () => { renderStageSelect(); switchScreen('stage-select-screen'); });
+        document.getElementById('go-to-gacha-button').addEventListener('click', () => { showPoolSelection(); switchScreen('gacha-screen'); });
+        document.getElementById('go-to-collection-button').addEventListener('click', () => { showMenuModal(false); renderDeckEditor(); switchScreen('collection-screen'); });
+        document.getElementById('go-to-base-upgrades-button').addEventListener('click', () => { showMenuModal(false); renderBaseUpgradeScreen(); switchScreen('base-upgrade-screen'); });
+        document.getElementById('go-to-treasures-button').addEventListener('click', () => { showMenuModal(false); renderTreasureScreen(); switchScreen('treasure-screen'); });
+        document.getElementById('go-to-daily-button').addEventListener('click', () => { showMenuModal(false); showDailyModal(true); });
+        document.getElementById('go-to-collection-book-button').addEventListener('click', () => { showMenuModal(false); const collectionBookScreen = document.getElementById('collection-book-screen'); collectionBookScreen.querySelector('.tab-button[data-tab="player-units"]').classList.add('active'); collectionBookScreen.querySelector('.tab-button[data-tab="enemy-units"]').classList.remove('active'); document.getElementById('player-units-tab').classList.add('active'); document.getElementById('enemy-units-tab').classList.remove('active'); renderCollectionBook(); switchScreen('collection-book-screen'); });
+        document.getElementById('go-to-shop-button').addEventListener('click', () => { showMenuModal(false); renderShopScreen(); switchScreen('shop-screen'); });
+        document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+        document.getElementById('go-to-menu-button').addEventListener('click', () => showMenuModal(true));
+        const menuModalOverlay = document.getElementById('menu-modal-overlay');
+        menuModalOverlay.querySelector('.menu-modal-close').addEventListener('click', () => showMenuModal(false));
+        menuModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'menu-modal-overlay') showMenuModal(false); });
+        document.getElementById('back-to-hub-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); });
+        document.getElementById('stage-back-button').addEventListener('click', () => switchScreen('hub-screen'));
+        document.getElementById('gacha-main-back-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); });
+        document.getElementById('gacha-pool-back-button').addEventListener('click', showPoolSelection);
+        document.getElementById('collection-back-button').addEventListener('click', () => switchScreen('hub-screen'));
+        document.getElementById('base-upgrade-back-button').addEventListener('click', () => switchScreen('hub-screen'));
+        document.getElementById('treasure-back-button').addEventListener('click', () => switchScreen('hub-screen'));
+        document.getElementById('collection-book-back-button').addEventListener('click', () => switchScreen('hub-screen'));
+        document.getElementById('shop-back-button').addEventListener('click', () => switchScreen('hub-screen'));
+        document.getElementById('upgrade-money-btn').addEventListener('click', handleUpgradeMoney);
+        document.getElementById('speed-toggle-btn').addEventListener('click', toggleBattleSpeed);
+        document.getElementById('pause-btn').addEventListener('click', () => togglePause(true));
+        document.getElementById('resume-btn').addEventListener('click', () => togglePause(false));
+        document.getElementById('quit-battle-btn').addEventListener('click', quitBattle);
+        document.getElementById('fire-cannon-btn').addEventListener('click', fireCatCannon);
+        document.getElementById('settings-button').addEventListener('click', () => showSettings(true));
+        document.getElementById('settings-overlay').addEventListener('click', (e) => { if (e.target.id === 'settings-overlay') showSettings(false); });
+        document.getElementById('volume-slider').addEventListener('input', (e) => setVolume(e.target.value));
+        document.getElementById('reset-game-button').addEventListener('click', resetGame);
+        
+        // 匯出/匯入按鈕的事件
+        document.getElementById('export-save-button').addEventListener('click', exportSave);
+        document.getElementById('import-save-button').addEventListener('click', importSave);
+
+        const upgradeModalOverlay = document.getElementById('upgrade-modal-overlay');
+        upgradeModalOverlay.querySelector('.upgrade-modal-close').addEventListener('click', closeUpgradeModal);
+        upgradeModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'upgrade-modal-overlay') closeUpgradeModal(); });
+        const dailyModalOverlay = document.getElementById('daily-modal-overlay');
+        dailyModalOverlay.querySelector('.daily-modal-close').addEventListener('click', () => showDailyModal(false));
+        dailyModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'daily-modal-overlay') showDailyModal(false); });
+        dailyModalOverlay.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => switchTab(btn.dataset.tab)); });
+        dailyModalOverlay.querySelector('#mission-list').addEventListener('click', (e) => { if (e.target.classList.contains('mission-claim-btn')) { claimMission(parseInt(e.target.dataset.index)); } });
+        const collectionBookScreen = document.getElementById('collection-book-screen');
+        collectionBookScreen.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => { collectionBookScreen.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); collectionBookScreen.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active'); }); });
+        document.getElementById('claim-all-rewards-btn').addEventListener('click', claimAllCollectionRewards);
+        document.getElementById('toggle-upgrade-mode-btn').addEventListener('click', () => { isUpgradeMode = !isUpgradeMode; updateUpgradeModeUI(); renderDeckEditor(); });
+        document.getElementById('normal-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('normal'); });
+        document.getElementById('limited-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('limited'); });
+        const gachaRatesModal = document.getElementById('gacha-rates-modal-overlay');
+        gachaRatesModal.querySelector('.gacha-rates-modal-close').addEventListener('click', hideGachaRatesModal);
+        gachaRatesModal.addEventListener('click', (e) => { if (e.target.id === 'gacha-rates-modal-overlay') { hideGachaRatesModal(); } });
+        makeScrollable(document.getElementById('current-deck-display'));
+        makeScrollable(document.getElementById('owned-units-grid'));
+        makeScrollable(document.getElementById('deployment-bar'));
+    }
     function showGachaRatesModal(poolType) { let poolConfig, poolUnits, poolName; const ratesSummary = document.getElementById('gacha-rates-summary'); const ratesDetails = document.getElementById('gacha-rates-details'); if (poolType === 'normal') { poolConfig = POOL_CONFIG.normal; poolName = '常駐池'; poolUnits = poolConfig.units; ratesSummary.innerHTML = ` <span><strong>N:</strong> ${(RARITY_CONFIG.N.prob * 100).toFixed(1)}%</span> <span><strong>R:</strong> ${(RARITY_CONFIG.R.prob * 100).toFixed(1)}%</span> <span><strong>SSR:</strong> ${((RARITY_CONFIG.SSR.prob + RARITY_CONFIG.UR.prob) * 100).toFixed(1)}%</span> `; } else { const poolIndex = getCurrentLimitedPoolIndex(); poolConfig = LIMITED_POOL_ROTATIONS[poolIndex]; poolName = poolConfig.name; poolUnits = POOL_CONFIG.limited.units; ratesSummary.innerHTML = ` <span><strong>N:</strong> ${(RARITY_CONFIG.N.prob * 100).toFixed(1)}%</span> <span><strong>R:</strong> ${(RARITY_CONFIG.R.prob * 100).toFixed(1)}%</span> <span><strong>SSR:</strong> ${(RARITY_CONFIG.SSR.prob * 100).toFixed(1)}%</span> <span><strong>UR:</strong> ${(RARITY_CONFIG.UR.prob * 100).toFixed(1)}%</span> `; } document.getElementById('gacha-rates-title').textContent = `${poolName} - 機率詳情`; ratesDetails.innerHTML = ''; const unitsByRarity = { UR: [], SSR: [], R: [], N: [] }; poolUnits.forEach(unitId => { const unit = ALL_UNITS[unitId]; if (unit && unitsByRarity[unit.rarity]) { unitsByRarity[unit.rarity].push(unit); } }); ['UR', 'SSR', 'R', 'N'].forEach(rarity => { if (unitsByRarity[rarity].length > 0) { let sectionHTML = `<h3>${rarity} 角色</h3><div class="rate-unit-grid">`; unitsByRarity[rarity].sort((a,b) => a.cost - b.cost).forEach(unit => { sectionHTML += `<div class="rate-unit-item"><span class="icon">${unit.icon}</span><span class="name">${unit.name}</span></div>`; }); sectionHTML += `</div>`; ratesDetails.innerHTML += sectionHTML; } }); document.getElementById('gacha-rates-modal-overlay').style.display = 'flex'; }
     function hideGachaRatesModal() { document.getElementById('gacha-rates-modal-overlay').style.display = 'none'; }
     function initializeUnit(unitId) { if (!playerState.unitLevels[unitId]) { playerState.unitLevels[unitId] = { level: 1, enchantments: { hp: 0, atk: 0 } }; if (playerState.deck.length < DECK_SIZE_LIMIT) { playerState.deck.push(unitId); } playerState.unlockedUnits.add(unitId); updateCollectionBookBadge(); return true; } return false; }
