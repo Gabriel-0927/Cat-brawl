@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>貓咪大亂鬥 V9.9 - 全螢幕修正</title>
     <style>
-        /* CSS樣式 (保持不變) */
+        /* CSS樣式 */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; user-select: none; }
         #game-container { width: 800px; height: 550px; background-color: #fff; border: 2px solid #333; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); position: relative; overflow: hidden; }
         #game-container:fullscreen {
@@ -80,8 +80,22 @@
         #gacha-gate { width: 250px; height: 250px; border-radius: 50%; background-color: #4a00e0; animation: gacha-pulse 2s infinite alternate; }
         #gacha-gate.ssr-mode { border: 5px solid #f1c40f; animation: gacha-ssr-pulse 1s infinite; }
         #gacha-gate.ur-mode { border: 10px solid white; animation: gacha-ur-rainbow 2s infinite linear; }
-        #collection-screen { justify-content: flex-start; align-items: flex-start; background-color: #e0f7fa; padding: 60px 20px 20px 20px; }
-        #deck-management-area { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        
+        /* ++ MODIFIED: 修正隊伍編成畫面的遮擋問題 ++ */
+        #collection-screen {
+            justify-content: flex-start;
+            align-items: flex-start;
+            background-color: #e0f7fa;
+            padding: 60px 20px 20px 20px;
+            overflow-y: auto; /* 關鍵：當內容過高時，允許垂直捲動 */
+        }
+        #deck-management-area {
+            width: 100%;
+            /* height: 100%;  <-- 移除這個，讓高度可以自由延伸 */
+            display: flex;
+            flex-direction: column;
+        }
+
         #current-deck-container h3, #owned-units-container h3 { margin: 0 0 10px 0; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; }
         #owned-units-container h3 { margin-top: 15px; }
         #current-deck-display { display: flex; gap: 10px; min-height: 130px; background-color: rgba(255,255,255,0.7); border-radius: 8px; padding: 10px; overflow-x: auto; align-items: center; border: 2px dashed #95a5a6; }
@@ -710,27 +724,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleDailyReset();
     }
     
-    // ++ MODIFIED: 更健壯的匯出存檔函數 ++
-    function exportSave() {
-        const stateString = localStorage.getItem(SAVE_KEY);
-        if (!stateString) {
-            alert('找不到存檔！');
-            return;
-        }
-
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(stateString).then(() => {
-                alert('存檔碼已複製到剪貼簿！請將它貼到記事本中妥善保管。');
-            }).catch(err => {
-                console.warn('自動複製失敗，啟用備用方案:', err);
-                fallbackCopyTextToClipboard(stateString);
-            });
-        } else {
-            console.warn('不支援 Clipboard API，啟用備用方案。');
-            fallbackCopyTextToClipboard(stateString);
-        }
-    }
-
+    // ++ MODIFIED: 更換為更健壯的匯出/匯入函數 ++
     function fallbackCopyTextToClipboard(text) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
@@ -758,6 +752,25 @@ document.addEventListener('DOMContentLoaded', () => {
             prompt('自動複製失敗，請手動長按、全選並複製以下文字：', text);
         }
         document.body.removeChild(textArea);
+    }
+
+    function exportSave() {
+        const stateString = localStorage.getItem(SAVE_KEY);
+        if (!stateString) {
+            alert('找不到存檔！');
+            return;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(stateString).then(() => {
+                alert('存檔碼已複製到剪貼簿！請將它貼到記事本中妥善保管。');
+            }).catch(err => {
+                console.warn('自動複製失敗，啟用備用方案:', err);
+                fallbackCopyTextToClipboard(stateString);
+            });
+        } else {
+            console.warn('不支援 Clipboard API，啟用備用方案。');
+            fallbackCopyTextToClipboard(stateString);
+        }
     }
 
     function importSave() {
