@@ -129,7 +129,7 @@
         #battle-screen { padding: 0; justify-content: flex-start; position: relative;}
         #battlefield { 
             width: 100%; 
-            flex-grow: 1; /* 取代固定的 height: 430px */
+            flex-grow: 1;
             position: relative; 
             transition: background 0.5s ease-in-out; 
         }
@@ -564,7 +564,6 @@
         <div id="daily-modal-overlay" class="modal-overlay"> <div id="daily-modal-content" class="modal-content"> <button id="modal-close-btn" class="daily-modal-close">×</button> <div class="modal-tabs"> <button class="tab-button active" data-tab="login">登入獎勵</button> <button class="tab-button" data-tab="missions">每日任務</button> </div> <div id="login-tab" class="tab-content active"> <h3>7日登入獎勵</h3> <div id="login-rewards-grid"></div> </div> <div id="missions-tab" class="tab-content"> <h3>每日任務</h3> <div id="mission-list"></div> </div> </div> </div>
         <div id="upgrade-modal-overlay" class="modal-overlay"> <div id="upgrade-modal-content" class="modal-content"> <button id="modal-close-btn" class="upgrade-modal-close">×</button> <h2 id="modal-unit-name"></h2> <div id="modal-unit-icon"></div> <div id="modal-stats"></div> <button id="modal-upgrade-btn"></button> <div id="enchantment-section"> <h3>魔法附魔</h3> <div id="enchant-stats-area"></div> </div> </div> </div>
         
-        <!-- ++ MODIFIED: 在設定面板中加入匯出/匯入按鈕 ++ -->
         <div id="settings-overlay" class="screen">
             <div id="settings-panel">
                 <h2>設定</h2>
@@ -572,9 +571,9 @@
                     <label for="volume-slider">背景音樂音量</label>
                     <input type="range" id="volume-slider" min="0" max="1" step="0.05">
                 </div>
-                <button id="export-save-button" class="hub-button" style="width: 100%; margin-top: 20px; background: linear-gradient(145deg, #2ecc71, #27ae60); border-bottom-color: #1e8449;">匯出存檔</button>
-                <button id="import-save-button" class="hub-button" style="width: 100%; margin-top: 10px; background: linear-gradient(145deg, #3498db, #2980b9); border-bottom-color: #20638f;">匯入存檔</button>
-                <button id="reset-game-button" class="back-button" style="position: static; transform: none;">重置遊戲進度</button>
+                <button id="export-save-button" class="hub-button" style="width: 100%; margin: 20px 0 5px 0; background: linear-gradient(145deg, #2ecc71, #27ae60); border-bottom-color: #1e8449;">匯出存檔</button>
+                <button id="import-save-button" class="hub-button" style="width: 100%; margin: 5px 0; background: linear-gradient(145deg, #3498db, #2980b9); border-bottom-color: #20638f;">匯入存檔</button>
+                <button id="reset-game-button" class="back-button" style="position: static; transform: none; width: 100%; margin-top: 15px;">重置遊戲進度</button>
             </div>
         </div>
         
@@ -711,20 +710,54 @@ document.addEventListener('DOMContentLoaded', () => {
         handleDailyReset();
     }
     
-    // ++ NEW: 匯出/匯入函數 ++
+    // ++ MODIFIED: 更健壯的匯出存檔函數 ++
     function exportSave() {
-        try {
-            const stateString = localStorage.getItem(SAVE_KEY);
-            if (stateString) {
-                navigator.clipboard.writeText(stateString);
+        const stateString = localStorage.getItem(SAVE_KEY);
+        if (!stateString) {
+            alert('找不到存檔！');
+            return;
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(stateString).then(() => {
                 alert('存檔碼已複製到剪貼簿！請將它貼到記事本中妥善保管。');
+            }).catch(err => {
+                console.warn('自動複製失敗，啟用備用方案:', err);
+                fallbackCopyTextToClipboard(stateString);
+            });
+        } else {
+            console.warn('不支援 Clipboard API，啟用備用方案。');
+            fallbackCopyTextToClipboard(stateString);
+        }
+    }
+
+    function fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.width = '2em';
+        textArea.style.height = '2em';
+        textArea.style.padding = '0';
+        textArea.style.border = 'none';
+        textArea.style.outline = 'none';
+        textArea.style.boxShadow = 'none';
+        textArea.style.background = 'transparent';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                alert('存檔碼已複製到剪貼簿！');
             } else {
-                alert('找不到存檔！');
+                prompt('自動複製失敗，請手動長按、全選並複製以下文字：', text);
             }
         } catch (err) {
-            console.error('複製失敗:', err);
-            prompt('您的瀏覽器不支援自動複製，請手動複製以下所有文字：', localStorage.getItem(SAVE_KEY));
+            prompt('自動複製失敗，請手動長按、全選並複製以下文字：', text);
         }
+        document.body.removeChild(textArea);
     }
 
     function importSave() {
@@ -752,7 +785,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleGachaPull(count, poolType, poolIndex = -1) { let config, rateUpUnits = []; if (poolType === 'normal') { config = POOL_CONFIG.normal; } else { const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool }; rateUpUnits = currentPool.rateUp; } const cost = count === 1 ? config.costSingle : config.costTen; if (playerState.catFood < cost) { showToast('貓罐頭不足！'); return; } document.getElementById('gacha-pull-1').disabled = true; document.getElementById('gacha-pull-10').disabled = true; updateMissionProgress('pull_gacha', count); playerState.catFood -= cost; const results = []; let highestRarity = 'N'; const rarityOrder = { N: 0, R: 1, SSR: 2, UR: 3 }; for (let i = 0; i < count; i++) { let rand = Math.random(), chosenRarity, cumulativeProb = 0; for (const rarity in RARITY_CONFIG) { cumulativeProb += RARITY_CONFIG[rarity].prob; if (rand < cumulativeProb) { chosenRarity = rarity; break; } } if (poolType === 'normal' && chosenRarity === 'UR') chosenRarity = 'SSR'; let unitId; const potentialRateUp = rateUpUnits.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); if (potentialRateUp.length > 0 && Math.random() < 0.5) { unitId = potentialRateUp[Math.floor(Math.random() * potentialRateUp.length)]; } else { const availableUnits = config.units.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); unitId = availableUnits.length > 0 ? availableUnits[Math.floor(Math.random() * availableUnits.length)] : 'cat_basic'; } const isNew = initializeUnit(unitId); if (!isNew) { const conversion = DUPLICATE_CONVERSION[ALL_UNITS[unitId].rarity]; playerState.xp += conversion.xp; playerState.catFood += conversion.food; } results.push({ id: unitId, isNew: isNew }); if (rarityOrder[chosenRarity] > rarityOrder[highestRarity]) { highestRarity = chosenRarity; } } updateTopBar(); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; const gachaGate = document.getElementById('gacha-gate'); gachaGate.className = 'gacha-gate'; let waitTime = 1500; if (highestRarity === 'UR') { gachaGate.classList.add('ur-mode'); waitTime = 3000; } else if (highestRarity === 'SSR') { gachaGate.classList.add('ssr-mode'); waitTime = 2000; } document.getElementById('gacha-animation-overlay').style.display = 'flex'; await sleep(waitTime); document.getElementById('gacha-animation-overlay').style.display = 'none'; const container = document.getElementById('gacha-results'); container.innerHTML = ''; for (const result of results) { const resultContainer = document.createElement('div'); resultContainer.className = 'gacha-card-container'; const card = createUnitCard(result.id); const feedback = document.createElement('div'); feedback.className = 'gacha-card-feedback'; if (result.isNew) { feedback.classList.add('feedback-new'); feedback.textContent = 'NEW!'; } else { const conv = DUPLICATE_CONVERSION[ALL_UNITS[result.id].rarity]; feedback.classList.add('feedback-dupe'); feedback.textContent = `+${conv.xp} XP, +${conv.food}🥫`; } resultContainer.appendChild(card); resultContainer.appendChild(feedback); container.appendChild(resultContainer); const rarity = ALL_UNITS[result.id].rarity; if (rarity === 'SSR' || rarity === 'UR') { resultContainer.classList.add('rare-reveal-animation'); await sleep(800); } else { resultContainer.classList.add('reveal-animation'); await sleep(200); } } document.getElementById('gacha-pull-1').disabled = false; document.getElementById('gacha-pull-10').disabled = false; saveGame(); }
     function renderDeckEditor() { updateUpgradeModeUI(); document.getElementById('deck-count').textContent = playerState.deck.length; document.getElementById('deck-limit').textContent = DECK_SIZE_LIMIT; const deckDisplay = document.getElementById('current-deck-display'); const ownedGrid = document.getElementById('owned-units-grid'); deckDisplay.innerHTML = ''; ownedGrid.innerHTML = ''; playerState.deck.forEach(unitId => { const card = createUnitCard(unitId); card.addEventListener('click', () => { handleDeckChange(unitId, 'remove'); }); card.addEventListener('dblclick', (e) => { e.stopPropagation(); showUpgradeModal(unitId); }); deckDisplay.appendChild(card); }); for (let i = playerState.deck.length; i < DECK_SIZE_LIMIT; i++) { const slot = document.createElement('div'); slot.className = 'deck-slot'; deckDisplay.appendChild(slot); } Object.keys(playerState.unitLevels).sort((a, b) => ALL_UNITS[b].rarity.localeCompare(ALL_UNITS[a].rarity) || getUnitDeployCost(a) - getUnitDeployCost(b)).forEach(unitId => { const card = createUnitCard(unitId); if (playerState.deck.includes(unitId)) { card.classList.add('in-deck'); } card.addEventListener('click', () => { if (isUpgradeMode) { showUpgradeModal(unitId); } else { handleDeckChange(unitId, 'toggle'); } }); ownedGrid.appendChild(card); }); }
     
-    // ++ MODIFIED: 加入匯出/匯入的事件監聽 ++
     function setupEventListeners() {
         document.getElementById('start-screen').addEventListener('click', () => { initBgm(); switchScreen('hub-screen'); }, { once: true });
         document.getElementById('go-to-stages-button').addEventListener('click', () => { renderStageSelect(); switchScreen('stage-select-screen'); });
@@ -788,7 +820,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('volume-slider').addEventListener('input', (e) => setVolume(e.target.value));
         document.getElementById('reset-game-button').addEventListener('click', resetGame);
         
-        // 匯出/匯入按鈕的事件
         document.getElementById('export-save-button').addEventListener('click', exportSave);
         document.getElementById('import-save-button').addEventListener('click', importSave);
 
