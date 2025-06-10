@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貓咪大亂鬥 V10.2 - 存檔修復</title>
+    <title>貓咪大亂鬥 V10.3 - 勝利加速</title>
     <!-- 引入 pako 壓縮函式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
@@ -426,10 +426,10 @@
         let hasShownLoginReward = false;
         let isUpgradeMode = false;
 
-        // ++ FIX: Update version and define previous save keys for migration ++
-        const GAME_VERSION = '10.2';
+        // ++ MODIFIED: Update version for this release ++
+        const GAME_VERSION = '10.3';
         const SAVE_KEY = `catBrawlSaveData_v${GAME_VERSION}`;
-        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
+        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.2', 'catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
 
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
@@ -461,26 +461,23 @@
                 return loadedState;
             }
             console.log(`正在從版本 ${fromVersion} 遷移存檔到 ${GAME_VERSION}...`);
-            // Add any future migration logic here if needed
             loadedState.version = GAME_VERSION;
             console.log("存檔遷移完成！");
             return loadedState;
         }
         
-        // ++ FIX: Reworked loadGame to be robust and handle migration from old save keys ++
         function loadGame() {
             let savedData = localStorage.getItem(SAVE_KEY);
             let needsSave = false;
 
             if (!savedData) {
-                // Try to find previous versions
                 for (const oldKey of PREVIOUS_SAVE_KEYS) {
                     const oldData = localStorage.getItem(oldKey);
                     if (oldData) {
                         console.log(`找到舊版本存檔: ${oldKey}`);
                         savedData = oldData;
-                        localStorage.removeItem(oldKey); // Remove old key after successful load
-                        needsSave = true; // Mark that we need to save under the new key
+                        localStorage.removeItem(oldKey); 
+                        needsSave = true; 
                         break;
                     }
                 }
@@ -491,26 +488,19 @@
                     let loadedState = JSON.parse(savedData);
                     loadedState = migrateSaveData(loadedState);
 
-                    // Re-initialize playerState with defaults to prevent missing properties on old saves
                     let freshState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() } };
-                    
                     playerState = { ...freshState, ...loadedState };
-
-                    // Ensure complex types are correctly recreated from arrays
                     playerState.unlockedUnits = new Set(loadedState.unlockedUnits || []);
                     playerState.seenEnemies = new Set(loadedState.seenEnemies || []);
                     playerState.collectionRewards = {
                         units: new Set(loadedState.collectionRewards?.units || []),
                         enemies: new Set(loadedState.collectionRewards?.enemies || []),
                     };
-
-                    // Ensure nested objects have defaults
                     playerState.settings = { ...freshState.settings, ...loadedState.settings };
                     playerState.catCannon = { ...freshState.catCannon, ...loadedState.catCannon };
                     playerState.treasures = { ...loadedState.treasures };
                     playerState.dailyMissions = loadedState.dailyMissions || [];
                     
-                    // Legacy check for old unit level format
                     for (const unitId in playerState.unitLevels) {
                         if (typeof playerState.unitLevels[unitId] === 'number') {
                             playerState.unitLevels[unitId] = {
@@ -529,7 +519,7 @@
                     }
                 } catch(e) {
                     console.error("讀取存檔失敗，將重置進度。", e);
-                    localStorage.removeItem(SAVE_KEY); // Clean up corrupted key
+                    localStorage.removeItem(SAVE_KEY);
                     initializeNewGame();
                 }
             } else {
@@ -572,7 +562,6 @@
                     const tempState = JSON.parse(decodedString);
                     if (tempState && tempState.catFood !== undefined && tempState.version) {
                         if (confirm('偵測到有效的存檔。匯入將會覆蓋目前的遊戲進度，確定要繼續嗎？')) {
-                            // Save with the correct new key
                             localStorage.setItem(SAVE_KEY, decodedString);
                             alert('匯入成功！遊戲將會重新載入。');
                             location.reload();
@@ -690,10 +679,190 @@
         function renderTreasureScreen() { const grid = document.getElementById('treasure-grid'); grid.innerHTML = ''; for (const treasureId in TREASURES) { const treasure = TREASURES[treasureId]; const isOwned = playerState.treasures[treasureId]; const card = document.createElement('div'); card.className = `treasure-card ${isOwned ? 'owned' : ''}`; let ownedTag = isOwned ? '<div class="treasure-owned-tag">已獲得</div>' : ''; card.innerHTML = ` ${ownedTag} <div class="treasure-icon">${treasure.icon}</div> <div class="treasure-name">${treasure.name}</div> <div class="treasure-desc">${treasure.desc}</div> `; grid.appendChild(card); } }
         function renderBaseUpgradeScreen() { const cannonLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[cannonLevel - 1]; const nextStats = CANNON_CONFIG[cannonLevel]; const display = document.getElementById('cannon-stats-display'); const upgradeBtn = document.getElementById('upgrade-cannon-btn'); let statsHTML = ` <div class="stat-block">等級: ${currentStats.level}</div> <div class="stat-block">傷害: ${currentStats.damage}</div> <div class="stat-block">擊退: ${currentStats.knockback}</div> <div class="stat-block">充能: ${currentStats.chargeTimeSec}s</div> `; if (nextStats && currentStats.upgradeCost !== Infinity) { statsHTML += ` <div class="stat-block arrow">→</div> <div class="stat-block" style="color:#2ecc71">Lv.${nextStats.level}</div> `; upgradeBtn.textContent = `升級 (花費 ${currentStats.upgradeCost} XP)`; upgradeBtn.classList.toggle('disabled', playerState.xp < currentStats.upgradeCost); upgradeBtn.onclick = handleUpgradeCannon; } else { upgradeBtn.textContent = '已達最高等級'; upgradeBtn.classList.add('disabled'); upgradeBtn.onclick = null; } display.innerHTML = statsHTML; }
         function handleUpgradeCannon() { const currentLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[currentLevel - 1]; if (playerState.xp >= currentStats.upgradeCost) { playerState.xp -= currentStats.upgradeCost; playerState.catCannon.level++; saveGame(); updateTopBar(); renderBaseUpgradeScreen(); } else { alert('XP 不足！'); } }
-        function startStage(stageId) { if (playerState.deck.length === 0) { alert("隊伍中沒有任何貓咪！請先到「隊伍編成」畫面設定隊伍。"); return; } const stage = STAGE_CONFIG[stageId]; let cannonLevelData = { ...CANNON_CONFIG[playerState.catCannon.level - 1] }; let moneyConfig = JSON.parse(JSON.stringify(MONEY_LEVEL_CONFIG)); let playerBaseHp = 3000; if (playerState.treasures['grass_amulet']) { moneyConfig.forEach(level => level.max += TREASURES['grass_amulet'].effect.value); } if (playerState.treasures['cave_crystal']) { moneyConfig.forEach(level => level.rate = Math.round(level.rate * TREASURES['cave_crystal'].effect.value)); } if (playerState.treasures['volcano_heart']) { cannonLevelData.chargeTimeSec *= TREASURES['volcano_heart'].effect.value; } if (playerState.treasures['cosmic_map']) { playerBaseHp = Math.round(playerBaseHp * TREASURES['cosmic_map'].effect.value); } if (playerState.treasures['steel_blueprint']) { cannonLevelData.damage = Math.round(cannonLevelData.damage * TREASURES['steel_blueprint'].effect.value); } battleState = { stageId, nextInstanceId: 0, moneyLevel: 0, money: 200, playerBaseHp: playerBaseHp, maxPlayerBaseHp: playerBaseHp, enemyBaseHp: stage.enemyBaseHp, maxEnemyBaseHp: stage.enemyBaseHp, playerUnits: [], enemyUnits: [], enemySpawnQueue: stage.enemies.map(e => ({ ...e, time: e.time * 1000 })).sort((a, b) => a.time - b.time), isGameOver: false, battleSpeed: 1, lastFrameTime: performance.now(), gameTime: 0, isPaused: false, catCannonData: cannonLevelData, catCannonMaxCharge: cannonLevelData.chargeTimeSec * 1000, catCannonCharge: 0, moneyLevelConfig: moneyConfig, totalMoneySpent: 0, enemiesKilled: 0 }; document.getElementById('speed-toggle-btn').textContent = '1x'; updateCannonUI(); const battlefield = document.getElementById('battlefield'); battlefield.className = 'battlefield'; if (stage.background) { battlefield.classList.add(stage.background); } setupBattlefield(); switchScreen('battle-screen'); gameLoopId = requestAnimationFrame(gameLoop); }
+        
+        // ++ MODIFIED: startStage function ++
+        function startStage(stageId) {
+            if (playerState.deck.length === 0) {
+                alert("隊伍中沒有任何貓咪！請先到「隊伍編成」畫面設定隊伍。");
+                return;
+            }
+            const stage = STAGE_CONFIG[stageId];
+            let cannonLevelData = { ...CANNON_CONFIG[playerState.catCannon.level - 1] };
+            let moneyConfig = JSON.parse(JSON.stringify(MONEY_LEVEL_CONFIG));
+            let playerBaseHp = 3000;
+            if (playerState.treasures['grass_amulet']) { moneyConfig.forEach(level => level.max += TREASURES['grass_amulet'].effect.value); }
+            if (playerState.treasures['cave_crystal']) { moneyConfig.forEach(level => level.rate = Math.round(level.rate * TREASURES['cave_crystal'].effect.value)); }
+            if (playerState.treasures['volcano_heart']) { cannonLevelData.chargeTimeSec *= TREASURES['volcano_heart'].effect.value; }
+            if (playerState.treasures['cosmic_map']) { playerBaseHp = Math.round(playerBaseHp * TREASURES['cosmic_map'].effect.value); }
+            if (playerState.treasures['steel_blueprint']) { cannonLevelData.damage = Math.round(cannonLevelData.damage * TREASURES['steel_blueprint'].effect.value); }
+            
+            battleState = {
+                stageId,
+                nextInstanceId: 0,
+                moneyLevel: 0,
+                money: 200,
+                playerBaseHp: playerBaseHp,
+                maxPlayerBaseHp: playerBaseHp,
+                enemyBaseHp: stage.enemyBaseHp,
+                maxEnemyBaseHp: stage.enemyBaseHp,
+                playerUnits: [],
+                enemyUnits: [],
+                enemySpawnQueue: stage.enemies.map(e => ({ ...e, time: e.time * 1000 })).sort((a, b) => a.time - b.time),
+                isGameOver: false,
+                battleSpeed: 1,
+                lastFrameTime: performance.now(),
+                gameTime: 0,
+                isPaused: false,
+                catCannonData: cannonLevelData,
+                catCannonMaxCharge: cannonLevelData.chargeTimeSec * 1000,
+                catCannonCharge: 0,
+                moneyLevelConfig: moneyConfig,
+                totalMoneySpent: 0,
+                enemiesKilled: 0,
+                isVictoryRush: false, // ++ NEW: Add victory rush flag
+            };
+            
+            document.getElementById('speed-toggle-btn').textContent = '1x';
+            // Enable UI elements that might be disabled by victory rush
+            document.getElementById('deployment-bar').style.pointerEvents = 'auto';
+
+            updateCannonUI();
+            const battlefield = document.getElementById('battlefield');
+            battlefield.className = 'battlefield';
+            if (stage.background) {
+                battlefield.classList.add(stage.background);
+            }
+            setupBattlefield();
+            switchScreen('battle-screen');
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
         function setupBattlefield() { document.getElementById('battlefield').innerHTML = `<div id="time-stop-overlay"></div><div id="player-base" class="base"><div class="base-icon">🏰</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div><div id="enemy-base" class="base"><div class="base-icon">🏯</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div>`; updateDeploymentBar(); updateBattleMoneyUI(); updateBaseHealth(); }
         function updateDeploymentBar() { const bar = document.getElementById('deployment-bar'); bar.innerHTML = ''; const sortedDeck = [...playerState.deck].sort((a, b) => getUnitDeployCost(a) - getUnitDeployCost(b)); sortedDeck.forEach(unitId => { const unitData = playerState.unitLevels[unitId]; const unit = ALL_UNITS[unitId]; const cost = getUnitDeployCost(unitId); const btn = document.createElement('button'); btn.className = 'deploy-button'; btn.dataset.cost = cost; btn.innerHTML = `<div class="card-level" style="font-size:10px;top:2px;right:2px;">Lv.${unitData.level}</div><div class="card-icon" style="font-size:30px;">${unit.icon}</div><div style="font-size:12px; font-weight:bold;">${unit.name}</div><div class="deploy-cost" style="font-size:14px;">$${cost}</div>`; btn.addEventListener('click', () => deployUnit(unitId)); bar.appendChild(btn); }); }
-        function gameLoop(currentTime) { if (battleState.isGameOver || battleState.isPaused) return; const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed; battleState.lastFrameTime = currentTime; battleState.gameTime += deltaTime; const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; if (!battleState.lastMoneyUpdate || battleState.gameTime - battleState.lastMoneyUpdate > 1000) { battleState.money = Math.min(moneyConfig.max, battleState.money + moneyConfig.rate); battleState.lastMoneyUpdate = battleState.gameTime; updateBattleMoneyUI(); } if (battleState.catCannonCharge < battleState.catCannonMaxCharge) { battleState.catCannonCharge += deltaTime; updateCannonUI(); } if (battleState.enemySpawnQueue.length > 0 && battleState.gameTime >= battleState.enemySpawnQueue[0].time) { const enemyToSpawn = battleState.enemySpawnQueue.shift(); spawnUnit(enemyToSpawn.type, 'enemy'); } const allUnits = [...battleState.playerUnits, ...battleState.enemyUnits]; for (const unit of allUnits) { const unitData = unit.team === 'player' ? getUnitStats(unit.id) : (ALL_UNITS[unit.id] || ENEMY_UNITS[unit.id]); if (unitData.lifeSpan && currentTime - unit.spawnTime > unitData.lifeSpan) { removeUnit(unit); continue; } unit.element.classList.remove('buffed', 'weakened', 'poisoned'); if (unit.buffUntil && unit.buffUntil > currentTime) { unit.element.classList.add('buffed'); } if (unit.weakenUntil && unit.weakenUntil > currentTime) { unit.element.classList.add('weakened'); } if (unit.poisonUntil && currentTime < unit.poisonUntil) { unit.element.classList.add('poisoned'); if (!unit.lastPoisonTick || currentTime - unit.lastPoisonTick > 1000) { dealDamage(unit, unit.poisonDamage, false, null, {}, currentTime); unit.lastPoisonTick = currentTime; } } else if (unit.poisonUntil) { unit.poisonUntil = null; unit.poisonDamage = null; } if (unit.frozenUntil && currentTime < unit.frozenUntil) { unit.element.classList.add('frozen'); continue; } else { unit.element.classList.remove('frozen'); unit.frozenUntil = null; } const actionInterval = (unitData.attackInterval || 1500) / battleState.battleSpeed; if (!unit.lastActionTime || currentTime - unit.lastActionTime > actionInterval) { let currentTarget = findUnitByInstanceId(unit.currentTargetId); if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) { unit.currentTargetId = null; const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits; let closestTarget = null, minDistance = Infinity; potentialTargets.forEach(target => { const distance = Math.abs(unit.x - target.x); if (distance <= unitData.range && distance < minDistance) { minDistance = distance; closestTarget = target; } }); if (closestTarget) { unit.currentTargetId = closestTarget.instanceId; currentTarget = closestTarget; } } if (currentTarget) { unit.isMoving = false; attack(unit, currentTarget, unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits, unitData, currentTime); } else { unit.isMoving = true; const basePos = unit.team === 'player' ? 700 : 100; if (Math.abs(unit.x - basePos) <= unitData.range) { unit.isMoving = false; attackBase(unit, unit.team === 'player' ? 'enemy' : 'player', unitData, currentTime); } } if (unitData.heal) { const healTargets = battleState.playerUnits.filter(p => p !== unit && p.hp < p.maxHp && Math.abs(p.x - unit.x) <= unitData.range); if (healTargets.length > 0) { unit.lastActionTime = currentTime; healTargets.forEach(target => { target.hp = Math.min(target.maxHp, target.hp + unitData.heal); createHealEffect(target.element, unitData.heal); updateUnitHealth(target); }); } } if (unitData.attackBuff) { const buffTargets = battleState.playerUnits.filter(p => p !== unit && Math.abs(p.x - unit.x) <= unitData.attackBuff.radius); if (buffTargets.length > 0) { unit.lastActionTime = currentTime; buffTargets.forEach(target => { target.buffUntil = currentTime + unitData.attackBuff.duration; target.buffMultiplier = unitData.attackBuff.multiplier; }); } } } if (unit.isMoving) { const speed = unitData.speed, direction = unit.team === 'player' ? 1 : -1; unit.x += speed * direction * (deltaTime / 16.67); } } updateUnitsPosition(); if (battleState.playerBaseHp <= 0) endGame(false); if (battleState.enemyBaseHp <= 0) endGame(true); if (!battleState.isGameOver) gameLoopId = requestAnimationFrame(gameLoop); }
+        
+        // ++ MODIFIED: gameLoop function ++
+        function gameLoop(currentTime) {
+            if (battleState.isGameOver || battleState.isPaused) return;
+            const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed;
+            battleState.lastFrameTime = currentTime;
+            battleState.gameTime += deltaTime;
+
+            // ++ NEW: Victory Rush Logic ++
+            const canStartVictoryRush = battleState.enemySpawnQueue.length === 0 && battleState.enemyUnits.length === 0;
+            if (canStartVictoryRush && !battleState.isVictoryRush) {
+                battleState.isVictoryRush = true;
+                battleState.battleSpeed = 4; // Set speed to 4x
+                document.getElementById('speed-toggle-btn').textContent = '4x'; // Update UI
+                showToast('攻城開始！');
+                // Disable UI elements that are no longer needed
+                document.getElementById('deployment-bar').style.pointerEvents = 'none';
+                document.getElementById('upgrade-money-btn').disabled = true;
+                document.getElementById('speed-toggle-btn').disabled = true;
+            }
+            
+            const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel];
+            if (!battleState.lastMoneyUpdate || battleState.gameTime - battleState.lastMoneyUpdate > 1000) {
+                battleState.money = Math.min(moneyConfig.max, battleState.money + moneyConfig.rate);
+                battleState.lastMoneyUpdate = battleState.gameTime;
+                updateBattleMoneyUI();
+            }
+            if (battleState.catCannonCharge < battleState.catCannonMaxCharge) {
+                battleState.catCannonCharge += deltaTime;
+                updateCannonUI();
+            }
+            if (battleState.enemySpawnQueue.length > 0 && battleState.gameTime >= battleState.enemySpawnQueue[0].time) {
+                const enemyToSpawn = battleState.enemySpawnQueue.shift();
+                spawnUnit(enemyToSpawn.type, 'enemy');
+            }
+            const allUnits = [...battleState.playerUnits, ...battleState.enemyUnits];
+            for (const unit of allUnits) {
+                const unitData = unit.team === 'player' ? getUnitStats(unit.id) : (ALL_UNITS[unit.id] || ENEMY_UNITS[unit.id]);
+                if (unitData.lifeSpan && currentTime - unit.spawnTime > unitData.lifeSpan) { removeUnit(unit); continue; }
+                unit.element.classList.remove('buffed', 'weakened', 'poisoned');
+                if (unit.buffUntil && unit.buffUntil > currentTime) { unit.element.classList.add('buffed'); }
+                if (unit.weakenUntil && unit.weakenUntil > currentTime) { unit.element.classList.add('weakened'); }
+                if (unit.poisonUntil && currentTime < unit.poisonUntil) {
+                    unit.element.classList.add('poisoned');
+                    if (!unit.lastPoisonTick || currentTime - unit.lastPoisonTick > 1000) {
+                        dealDamage(unit, unit.poisonDamage, false, null, {}, currentTime);
+                        unit.lastPoisonTick = currentTime;
+                    }
+                } else if (unit.poisonUntil) {
+                    unit.poisonUntil = null;
+                    unit.poisonDamage = null;
+                }
+                if (unit.frozenUntil && currentTime < unit.frozenUntil) {
+                    unit.element.classList.add('frozen');
+                    continue;
+                } else {
+                    unit.element.classList.remove('frozen');
+                    unit.frozenUntil = null;
+                }
+                const actionInterval = (unitData.attackInterval || 1500) / battleState.battleSpeed;
+                if (!unit.lastActionTime || currentTime - unit.lastActionTime > actionInterval) {
+                    let currentTarget = findUnitByInstanceId(unit.currentTargetId);
+                    if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) {
+                        unit.currentTargetId = null;
+                        const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits;
+                        let closestTarget = null,
+                            minDistance = Infinity;
+                        potentialTargets.forEach(target => {
+                            const distance = Math.abs(unit.x - target.x);
+                            if (distance <= unitData.range && distance < minDistance) {
+                                minDistance = distance;
+                                closestTarget = target;
+                            }
+                        });
+                        if (closestTarget) {
+                            unit.currentTargetId = closestTarget.instanceId;
+                            currentTarget = closestTarget;
+                        }
+                    }
+                    if (currentTarget) {
+                        unit.isMoving = false;
+                        attack(unit, currentTarget, unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits, unitData, currentTime);
+                    } else {
+                        unit.isMoving = true;
+                        const basePos = unit.team === 'player' ? 700 : 100;
+                        if (Math.abs(unit.x - basePos) <= unitData.range) {
+                            unit.isMoving = false;
+                            attackBase(unit, unit.team === 'player' ? 'enemy' : 'player', unitData, currentTime);
+                        }
+                    }
+                    if (unitData.heal) {
+                        const healTargets = battleState.playerUnits.filter(p => p !== unit && p.hp < p.maxHp && Math.abs(p.x - unit.x) <= unitData.range);
+                        if (healTargets.length > 0) {
+                            unit.lastActionTime = currentTime;
+                            healTargets.forEach(target => {
+                                target.hp = Math.min(target.maxHp, target.hp + unitData.heal);
+                                createHealEffect(target.element, unitData.heal);
+                                updateUnitHealth(target);
+                            });
+                        }
+                    }
+                    if (unitData.attackBuff) {
+                        const buffTargets = battleState.playerUnits.filter(p => p !== unit && Math.abs(p.x - unit.x) <= unitData.attackBuff.radius);
+                        if (buffTargets.length > 0) {
+                            unit.lastActionTime = currentTime;
+                            buffTargets.forEach(target => {
+                                target.buffUntil = currentTime + unitData.attackBuff.duration;
+                                target.buffMultiplier = unitData.attackBuff.multiplier;
+                            });
+                        }
+                    }
+                }
+                if (unit.isMoving) {
+                    const speed = unitData.speed,
+                        direction = unit.team === 'player' ? 1 : -1;
+                    unit.x += speed * direction * (deltaTime / 16.67);
+                }
+            }
+            updateUnitsPosition();
+            if (battleState.playerBaseHp <= 0) endGame(false);
+            if (battleState.enemyBaseHp <= 0) endGame(true);
+            if (!battleState.isGameOver) gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
         function findUnitByInstanceId(id) { if (id == null) return null; return battleState.playerUnits.find(u => u.instanceId === id) || battleState.enemyUnits.find(u => u.instanceId === id); }
         function attack(attacker, mainTarget, allTargets, attackerData, currentTime) { attacker.lastActionTime = currentTime; const targetData = mainTarget.team === 'player' ? getUnitStats(mainTarget.id) : (ALL_UNITS[mainTarget.id] || ENEMY_UNITS[mainTarget.id]); if (targetData.dodgeChance && Math.random() < targetData.dodgeChance) { createDamageTextEffect(mainTarget.element, 'MISS', '#ffffff'); return; } if (targetData.blockChance && Math.random() < targetData.blockChance) { mainTarget.element.classList.add('blocking'); setTimeout(() => mainTarget.element.classList.remove('blocking'), 300); return; } if (attackerData.timeStop && Math.random() < attackerData.timeStop.chance) { showTimeStopEffect(); battleState.enemyUnits.forEach(enemy => enemy.frozenUntil = currentTime + attackerData.timeStop.duration); } if (attackerData.multiHit) { for (let i = 0; i < attackerData.multiHit.count; i++) { setTimeout(() => performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime), i * attackerData.multiHit.delay); } } else { performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime); } }
         function performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime) { if (!mainTarget || mainTarget.hp <= 0) return; let actualAtk = attackerData.atk; if (attacker.buffUntil && attacker.buffUntil > currentTime) actualAtk *= attacker.buffMultiplier; let isCrit = false; if (attackerData.crit && Math.random() < attackerData.crit.chance) { actualAtk = Math.round(actualAtk * attackerData.crit.multiplier); isCrit = true; } const originalHp = mainTarget.hp; if (attackerData.splashRange) { allTargets.filter(t => t.hp > 0 && Math.abs(t.x - mainTarget.x) <= attackerData.splashRange).forEach(target => dealDamage(target, actualAtk, isCrit, attacker, attackerData, currentTime)); } else { dealDamage(mainTarget, actualAtk, isCrit, attacker, attackerData, currentTime); } const killedTarget = originalHp > 0 && mainTarget.hp <= 0; if (killedTarget && attackerData.moneyOnKill && Math.random() < attackerData.moneyOnKill.chance) { battleState.money = Math.min(battleState.moneyLevelConfig[battleState.moneyLevel].max, battleState.money + attackerData.moneyOnKill.amount); updateBattleMoneyUI(); } if (attackerData.waveAttack && Math.random() < attackerData.waveAttack.chance) { const direction = attacker.team === 'player' ? 1 : -1; const waveTargets = (attacker.team === 'player' ? battleState.enemyUnits : battleState.playerUnits).filter(u => direction * (u.x - attacker.x) > 0 && direction * (u.x - attacker.x) < attackerData.waveAttack.distance); waveTargets.forEach(target => setTimeout(() => dealDamage(target, actualAtk, false, attacker, attackerData, currentTime), 100)); } if (attackerData.freeze && Math.random() < attackerData.freeze.chance) { mainTarget.frozenUntil = currentTime + attackerData.freeze.duration; } if (attackerData.weaken && Math.random() < attackerData.weaken.chance) { mainTarget.weakenUntil = currentTime + attackerData.weaken.duration; mainTarget.weakenMultiplier = attackerData.weaken.multiplier; } if (attackerData.poison && Math.random() < attackerData.poison.chance) { mainTarget.poisonUntil = currentTime + attackerData.poison.duration; mainTarget.poisonDamage = attackerData.poison.damage; mainTarget.lastPoisonTick = currentTime; } }
@@ -709,7 +878,7 @@
         function updateCannonUI() { const btn = document.getElementById('fire-cannon-btn'); const chargeBar = document.getElementById('cannon-charge-bar'); const chargePercentage = Math.min(100, (battleState.catCannonCharge / battleState.catCannonMaxCharge) * 100); chargeBar.style.height = `${chargePercentage}%`; btn.classList.toggle('disabled', chargePercentage < 100); }
         function updateBattleMoneyUI() { const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; document.querySelector('#money-display').textContent = `金錢: $${battleState.money} / ${moneyConfig.max}`; document.querySelector('#money-level-display').textContent = `錢包 Lv: ${battleState.moneyLevel + 1}`; const upgradeBtn = document.getElementById('upgrade-money-btn'); const nextLevelConfig = battleState.moneyLevelConfig[battleState.moneyLevel + 1]; if (nextLevelConfig && nextLevelConfig.cost !== Infinity) { upgradeBtn.textContent = `升級 ($${nextLevelConfig.cost})`; upgradeBtn.classList.toggle('disabled', battleState.money < nextLevelConfig.cost); } else { upgradeBtn.textContent = '已滿級'; upgradeBtn.classList.add('disabled'); } document.querySelectorAll('.deploy-button').forEach(btn => { btn.classList.toggle('disabled', battleState.money < parseInt(btn.dataset.cost)); }); }
         function handleUpgradeMoney() { const nextLevel = battleState.moneyLevel + 1; const nextLevelConfig = battleState.moneyLevelConfig[nextLevel]; if (nextLevelConfig) { const cost = nextLevelConfig.cost; if (battleState.money >= cost) { battleState.money -= cost; battleState.moneyLevel = nextLevel; updateBattleMoneyUI(); } } }
-        function toggleBattleSpeed() { if (battleState.battleSpeed === 1) { battleState.battleSpeed = 2; document.getElementById('speed-toggle-btn').textContent = '2x'; } else { battleState.battleSpeed = 1; document.getElementById('speed-toggle-btn').textContent = '1x'; } }
+        function toggleBattleSpeed() { if (battleState.isVictoryRush) return; if (battleState.battleSpeed === 1) { battleState.battleSpeed = 2; document.getElementById('speed-toggle-btn').textContent = '2x'; } else { battleState.battleSpeed = 1; document.getElementById('speed-toggle-btn').textContent = '1x'; } }
         function createDamageTextEffect(targetElement, text, color) { const effect = document.createElement('div'); effect.className = 'damage-text'; effect.textContent = text; effect.style.color = color; const rect = targetElement.getBoundingClientRect(); const gameRect = document.getElementById('game-container').getBoundingClientRect(); effect.style.left = `${rect.left - gameRect.left + rect.width / 2 - 15}px`; effect.style.top = `${rect.top - gameRect.top + rect.height / 2 - 30}px`; document.getElementById('battlefield').appendChild(effect); setTimeout(() => effect.remove(), 800); }
         function createHealEffect(targetElement, amount) { const effect = document.createElement('div'); effect.className = 'heal-effect'; effect.textContent = `+${amount}`; const rect = targetElement.getBoundingClientRect(); const gameRect = document.getElementById('game-container').getBoundingClientRect(); effect.style.left = `${rect.left - gameRect.left + rect.width / 2 - 15}px`; effect.style.top = `${rect.top - gameRect.top + rect.height / 2 - 30}px`; document.getElementById('battlefield').appendChild(effect); setTimeout(() => effect.remove(), 800); }
         function showTimeStopEffect() { const overlay = document.getElementById('time-stop-overlay'); overlay.style.display = 'block'; setTimeout(() => { overlay.style.display = 'none'; }, 500); }
