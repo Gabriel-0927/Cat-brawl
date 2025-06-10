@@ -2,28 +2,20 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>貓咪大亂鬥 V10.6 - iOS 優化</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>貓咪大亂鬥 V10.7 - iOS 結構修復</title>
     
-    <!-- ++ NEW: Meta tags for iOS Web-App experience ++ -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="貓咪大亂鬥">
-    <!-- 建議您創建一個 180x180 px 的 PNG 圖片作為圖示 -->
-    <link rel="apple-touch-icon" href="https://i.imgur.com/gA3e2Am.png"> 
+    <link rel="apple-touch-icon" href="https://i.imgur.com/gA3e2Am.png">
     
-    <!-- 引入 pako 壓縮函式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
-        /* CSS樣式 */
+        /* CSS 樣式 (與 V10.6 完全相同) */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; user-select: none; }
         #game-container { width: 800px; height: 550px; background-color: #fff; border: 2px solid #333; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); position: relative; overflow: hidden; }
-        #game-container:fullscreen {
-            width: 100%;
-            height: 100%;
-            border-radius: 0;
-            border: none;
-        }
+        #game-container:fullscreen { width: 100%; height: 100%; border-radius: 0; border: none; }
         .screen { width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: none; flex-direction: column; align-items: center; box-sizing: border-box; padding: 20px; }
         .screen.active { display: flex; }
         @keyframes hit-effect-anim { from { transform: scale(1.5); opacity: 1; } to { transform: scale(2.5); opacity: 0; } }
@@ -36,14 +28,13 @@
         @keyframes blink-anim { 50% { opacity: 0.3; } }
         @keyframes freeze-in-anim { from { transform: translate(-50%, -50%) scale(0.5) rotate(-90deg); opacity: 0; } to { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.8; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
+        #ios-guide-overlay { z-index: 999; } /* Make sure guide is on top */
         #ios-guide-overlay .modal-content { width: 400px; text-align: left; }
         #ios-guide-overlay h3 { margin-top: 0; text-align: center; }
         #ios-guide-overlay p { line-height: 1.6; font-size: 16px; }
         #ios-guide-overlay .share-icon { display: inline-block; width: 20px; height: 20px; background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>'); background-size: contain; background-repeat: no-repeat; vertical-align: middle; margin: 0 4px; }
         #ios-guide-overlay .add-icon { display: inline-block; width: 20px; height: 20px; background-color: #f0f0f0; border-radius: 4px; color: #007aff; font-weight: bold; text-align: center; line-height: 20px; font-size: 18px; vertical-align: middle; margin: 0 4px; }
         .close-guide-btn { width: 100%; margin-top: 20px; }
-
         .back-button { position: absolute; top: 20px; left: 20px; font-size: 16px; padding: 8px 15px; cursor: pointer; background: #6c7a89; color: white; border-radius: 8px; border: none; border-bottom: 3px solid #4d5a68; z-index: 101; transition: all 0.1s ease-in-out; }
         .back-button:hover { background: #8d99ae; }
         .back-button:active { transform: translateY(2px); border-bottom-width: 1px; }
@@ -294,6 +285,17 @@
 </head>
 <body>
     <div id="game-container">
+        <!-- ++ MODIFIED: HTML Structure for modals ++ -->
+        <div id="ios-guide-overlay" class="modal-overlay">
+            <div id="ios-guide-overlay-content" class="modal-content">
+                <h3>享受全螢幕體驗！</h3>
+                <p>為了獲得最佳遊戲效果，建議您將此頁面新增到主畫面：</p>
+                <p>1. 點擊瀏覽器底部的「分享」按鈕 <span class="share-icon"></span>。</p>
+                <p>2. 在選單中向下滑動，找到並點擊「加入主畫面」<span class="add-icon">+</span>。</p>
+                <button class="hub-button close-guide-btn">我知道了</button>
+            </div>
+        </div>
+
         <button id="fullscreen-btn" title="全螢幕">⛶</button>
         <audio id="bgm" loop></audio>
         <div id="start-screen" class="screen active"> <h1 style="font-size: 48px;">貓咪大亂鬥</h1> <p id="start-screen-text">點擊任意處開始遊戲</p> </div>
@@ -415,19 +417,11 @@
                 <div id="modal-detail-unit-desc"></div>
             </div>
         </div>
-        <div id="ios-guide-overlay" class="modal-overlay">
-            <div id="ios-guide-overlay-content" class="modal-content">
-                <h3>享受全螢幕體驗！</h3>
-                <p>為了獲得最佳遊戲效果，建議您將此頁面新增到主畫面：</p>
-                <p>1. 點擊瀏覽器底部的「分享」按鈕 <span class="share-icon"></span>。</p>
-                <p>2. 在選單中向下滑動，找到並點擊「加入主畫面」<span class="add-icon">+</span>。</p>
-                <button class="hub-button close-guide-btn">我知道了</button>
-            </div>
-        </div>
         <div id="toast-container"></div>
     </div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- All Constants (ALL_UNITS, etc.) ---
         const ALL_UNITS = { /* N rarity */ 'cat_basic': { name: '小貓', icon: '😼', rarity: 'N', hp: 100, atk: 10, range: 40, speed: 2, cost: 50 }, 'cat_tank': { name: '坦克貓', icon: '😾', rarity: 'N', hp: 300, atk: 5, range: 35, speed: 1, cost: 75 }, 'cat_crusader': { name: '十字軍貓', icon: '🛡️', rarity: 'N', hp: 250, atk: 12, range: 40, speed: 1.2, cost: 100, blockChance: 0.2 }, 'cat_ninja': { name: '忍者貓', icon: '🥷', rarity: 'N', hp: 80, atk: 15, range: 40, speed: 3, cost: 60 }, /* R rarity */ 'cat_axe': { name: '斧頭貓', icon: '😺', rarity: 'R', hp: 150, atk: 25, range: 45, speed: 1.5, cost: 120 }, 'cat_magic': { name: '法師貓', icon: '🧙', rarity: 'R', hp: 90, atk: 20, range: 200, speed: 1.2, cost: 200 }, 'cat_freeze': { name: '冷凍貓', icon: '🧊', rarity: 'R', hp: 120, atk: 15, range: 150, speed: 1.5, cost: 280, freeze: { chance: 0.3, duration: 2000 } }, 'cat_samurai': { name: '武士貓', icon: '👺', rarity: 'R', hp: 200, atk: 30, range: 45, speed: 1.8, cost: 180, crit: { chance: 0.1, multiplier: 3 } }, 'cat_miner': { name: '礦工貓', icon: '⛏️', rarity: 'R', hp: 180, atk: 20, range: 40, speed: 1.5, cost: 220, moneyOnKill: { chance: 0.25, amount: 100 } }, 'cat_assassin': { name: '刺客貓', icon: '🗡️', rarity: 'R', hp: 100, atk: 10, range: 40, speed: 3.5, cost: 160, multiHit: { count: 2, delay: 100 } }, 'cat_archer': { name: '弓箭貓', icon: '🏹', rarity: 'R', hp: 100, atk: 18, range: 180, speed: 1.3, cost: 250 }, /* SSR rarity */ 'cat_king': { name: '獅王貓', icon: '🦁', rarity: 'SSR', hp: 500, atk: 50, range: 60, speed: 1, cost: 400 }, 'cat_dragon': { name: '龍騎士貓', icon: '🐉', rarity: 'SSR', hp: 350, atk: 70, range: 150, speed: 1.5, cost: 550, splashRange: 50 }, 'cat_healer': { name: '治癒貓', icon: '🙏', rarity: 'SSR', hp: 200, atk: 5, range: 120, speed: 1.2, cost: 300, heal: 20 }, 'cat_valkyrie': { name: '女武神貓', icon: '💃', rarity: 'SSR', hp: 400, atk: 40, range: 50, speed: 3, cost: 600, attackInterval: 1000 }, 'cat_gunslinger': { name: '槍手貓', icon: '🤠', rarity: 'SSR', hp: 300, atk: 25, range: 160, speed: 1.5, cost: 500, multiHit: { count: 3, delay: 150 } }, 'cat_bard': { name: '吟遊詩人貓', icon: '🎵', rarity: 'SSR', hp: 250, atk: 0, range: 150, speed: 1.2, cost: 450, attackBuff: { radius: 150, multiplier: 1.2, duration: 5000 } }, 'cat_paladin': { name: '聖騎士貓', icon: '⚜️', rarity: 'SSR', hp: 600, atk: 60, range: 130, speed: 1, cost: 650, splashRange: 30, weaken: { chance: 0.2, multiplier: 0.7, duration: 3000 } }, 'cat_demolitionist': { name: '爆破專家貓', icon: '💣', rarity: 'SSR', hp: 250, atk: 100, range: 160, speed: 1.2, cost: 700, splashRange: 120 }, 'cat_alchemist': { name: '煉金貓', icon: '🧪', rarity: 'SSR', hp: 280, atk: 20, range: 140, speed: 1.3, cost: 620, poison: { chance: 0.4, damage: 15, duration: 5000 } }, 'cat_guardian': { name: '守護貓', icon: '🛡️', rarity: 'SSR', hp: 800, atk: 25, range: 40, speed: 0.8, cost: 500, damageReduction: { chance: 0.3, multiplier: 0.5 } }, /* UR rarity */ 'cat_mecha': { name: '機械貓神', icon: '🤖', rarity: 'UR', hp: 1200, atk: 150, range: 180, speed: 2, cost: 1200, splashRange: 70 }, 'cat_timelord': { name: '時空貓', icon: '⏳', rarity: 'UR', hp: 800, atk: 80, range: 100, speed: 1, cost: 1500, timeStop: { chance: 0.15, duration: 2500 } }, 'cat_cosmic_dragon': { name: '宇宙龍貓', icon: '☄️', rarity: 'UR', hp: 1500, atk: 180, range: 200, speed: 1, cost: 1800, splashRange: 80, weaken: { chance: 0.3, multiplier: 0.5, duration: 5000 } }, 'cat_sun_god': { name: '太陽神貓', icon: '☀️', rarity: 'UR', hp: 2000, atk: 250, range: 180, speed: 0.8, cost: 2500, waveAttack: { chance: 0.3, distance: 250 } }, 'cat_necromancer': { name: '死靈法師貓', icon: '💀', rarity: 'UR', hp: 900, atk: 100, range: 160, speed: 1, cost: 1600, summonOnKill: { chance: 0.5, unitId: 'minion_skeleton' } }, /* Minions */ 'minion_skeleton': { name: '骷髏兵', icon: '🦴', rarity: 'N', hp: 50, atk: 20, range: 30, speed: 2, cost: 0, isMinion: true, lifeSpan: 10000 } };
         const ENEMY_UNITS = { 'doge': { name: '狗狗', icon: '🐶', hp: 80, atk: 10, range: 30, speed: 1.5 }, 'snake': { name: '蛇蛇', icon: '🐍', hp: 120, atk: 20, range: 80, speed: 1 }, 'bat': { name: '蝙蝠', icon: '🦇', hp: 50, atk: 15, range: 100, speed: 2.5 }, 'bear': { name: '熊熊', icon: '🐻', hp: 800, atk: 50, range: 40, speed: 0.8 }, 'volcano_golem': { name: '火山魔像', icon: '🌋', hp: 15000, atk: 200, range: 100, speed: 0.5, splashRange: 80 }, 'alien_doge': { name: '外星狗狗', icon: '👽', hp: 100, atk: 15, range: 35, speed: 3, dodgeChance: 0.3 }, 'cyborg_snake': { name: '機械蛇蛇', icon: '🦾', hp: 500, atk: 40, range: 250, speed: 0.7 }, 'dark_lord': { name: '暗黑帝王', icon: '😈', hp: 25000, atk: 300, range: 120, speed: 0.4, waveAttack: { chance: 0.5, distance: 200 } }, 'ghost': { name: '幽靈', icon: '👻', hp: 150, atk: 25, range: 120, speed: 2.2, dodgeChance: 0.5 },'stone_golem': { name: '石頭人', icon: '🧱', hp: 2000, atk: 80, range: 50, speed: 0.4 },'abyss_lord': { name: '深淵領主', icon: '🐙', hp: 80000, atk: 500, range: 150, speed: 0.3, splashRange: 100 } };
         const TREASURES = { 'grass_amulet': { name: '草原護符', icon: '🍀', desc: '戰鬥開始時，金錢上限 +500。', effect: { type: 'moneyMax', value: 500 } }, 'cave_crystal': { name: '洞窟水晶', icon: '💎', desc: '金錢生產速度提升 10%。', effect: { type: 'moneyRate', value: 1.1 } }, 'forest_idol': { name: '森林神像', icon: '🗿', desc: '所有貓咪的 HP 提升 10%。', effect: { type: 'unitHp', value: 1.1 } }, 'plateau_relic': { name: '高原遺物', icon: '📜', desc: '所有貓咪的攻擊力提升 10%。', effect: { type: 'unitAtk', value: 1.1 } }, 'volcano_heart': { name: '火山之心', icon: '❤️‍🔥', desc: '貓咪砲充能時間減少 15%。', effect: { type: 'cannonCharge', value: 0.85 } }, 'cosmic_map': { name: '宇宙地圖', icon: '🗺️', desc: '我方基地 HP 增加 20%。', effect: { type: 'baseHp', value: 1.2 } }, 'steel_blueprint': { name: '鋼鐵藍圖', icon: '🔩', desc: '貓咪砲傷害提升 25%。', effect: { type: 'cannonDamage', value: 1.25 } }, 'dark_crown': { name: '暗黑王冠', icon: '👑', desc: 'XP 獲得量永久提升 20%。', effect: { type: 'xpGain', value: 1.2 } },'abyss_tentacle': { name: '深淵觸手', icon: '🦑', desc: '所有貓咪的出擊成本降低 5%。', effect: { type: 'costReduction', value: 0.95 } } };
@@ -451,9 +445,9 @@
         let hasShownLoginReward = false;
         let isUpgradeMode = false;
 
-        const GAME_VERSION = '10.6';
+        const GAME_VERSION = '10.7';
         const SAVE_KEY = `catBrawlSaveData_v${GAME_VERSION}`;
-        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.5', 'catBrawlSaveData_v10.4', 'catBrawlSaveData_v10.3', 'catBrawlSaveData_v10.2', 'catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
+        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.6', 'catBrawlSaveData_v10.5', 'catBrawlSaveData_v10.4', 'catBrawlSaveData_v10.3', 'catBrawlSaveData_v10.2', 'catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
         function uint8ArrayToBase64(bytes) { let binary = ''; const len = bytes.byteLength; for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); } return window.btoa(binary); }
@@ -492,7 +486,6 @@
         function loadGame() {
             let savedData = localStorage.getItem(SAVE_KEY);
             let needsSave = false;
-
             if (!savedData) {
                 for (const oldKey of PREVIOUS_SAVE_KEYS) {
                     const oldData = localStorage.getItem(oldKey);
@@ -505,7 +498,6 @@
                     }
                 }
             }
-
             if (savedData) {
                 try {
                     let loadedState = JSON.parse(savedData);
@@ -522,7 +514,6 @@
                     playerState.catCannon = { ...freshState.catCannon, ...loadedState.catCannon };
                     playerState.treasures = { ...loadedState.treasures };
                     playerState.dailyMissions = loadedState.dailyMissions || [];
-                    
                     for (const unitId in playerState.unitLevels) {
                         if (typeof playerState.unitLevels[unitId] === 'number') {
                             playerState.unitLevels[unitId] = {
@@ -534,7 +525,6 @@
                     if (!playerState.deck || playerState.deck.length === 0) {
                         playerState.deck = Object.keys(playerState.unitLevels).slice(0, DECK_SIZE_LIMIT);
                     }
-
                     if (needsSave) {
                         console.log('正在將遷移後的存檔以新金鑰儲存...');
                         saveGame();
@@ -559,10 +549,7 @@
         
         function exportSave() {
             const stateString = localStorage.getItem(SAVE_KEY);
-            if (!stateString) {
-                alert('找不到存檔！');
-                return;
-            }
+            if (!stateString) { alert('找不到存檔！'); return; }
             try {
                 const textBuffer = new TextEncoder().encode(stateString);
                 const compressed = pako.deflate(textBuffer);
@@ -588,9 +575,7 @@
                             alert('匯入成功！遊戲將會重新載入。');
                             location.reload();
                         }
-                    } else {
-                        alert('存檔碼格式錯誤！');
-                    }
+                    } else { alert('存檔碼格式錯誤！'); }
                 } catch (err) {
                     alert('匯入失敗！存檔碼無效或已損毀。');
                     console.error('匯入錯誤:', err);
@@ -823,8 +808,7 @@
                     if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) {
                         unit.currentTargetId = null;
                         const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits;
-                        let closestTarget = null,
-                            minDistance = Infinity;
+                        let closestTarget = null, minDistance = Infinity;
                         potentialTargets.forEach(target => {
                             const distance = Math.abs(unit.x - target.x);
                             if (distance <= unitData.range && distance < minDistance) {
@@ -871,8 +855,7 @@
                     }
                 }
                 if (unit.isMoving) {
-                    const speed = unitData.speed,
-                        direction = unit.team === 'player' ? 1 : -1;
+                    const speed = unitData.speed, direction = unit.team === 'player' ? 1 : -1;
                     unit.x += speed * direction * (deltaTime / 16.67);
                 }
             }
@@ -931,7 +914,10 @@
             const hasSeenGuide = localStorage.getItem('hasSeenIosGuide');
 
             if (isIOS && !isInStandaloneMode && !hasSeenGuide) {
-                document.getElementById('ios-guide-overlay').style.display = 'flex';
+                const iosGuideOverlay = document.getElementById('ios-guide-overlay');
+                if (iosGuideOverlay) {
+                    iosGuideOverlay.style.display = 'flex';
+                }
             }
         }
         
