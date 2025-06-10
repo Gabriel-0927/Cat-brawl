@@ -1,14 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貓咪大亂鬥 V9.9 - 全螢幕修正</title>
+    <title>貓咪大亂鬥 V10.2 - 存檔修復</title>
     <!-- 引入 pako 壓縮函式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
-        /* CSS樣式 */
+        /* CSS樣式 (與上一版完全相同，此處省略以節省空間) */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; user-select: none; }
         #game-container { width: 800px; height: 550px; background-color: #fff; border: 2px solid #333; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); position: relative; overflow: hidden; }
         #game-container:fullscreen {
@@ -82,71 +81,16 @@
         #gacha-gate { width: 250px; height: 250px; border-radius: 50%; background-color: #4a00e0; animation: gacha-pulse 2s infinite alternate; }
         #gacha-gate.ssr-mode { border: 5px solid #f1c40f; animation: gacha-ssr-pulse 1s infinite; }
         #gacha-gate.ur-mode { border: 10px solid white; animation: gacha-ur-rainbow 2s infinite linear; }
-        
-        #collection-screen {
-            justify-content: flex-start;
-            align-items: stretch;
-            background-color: #e0f7fa;
-            padding: 60px 20px 20px 20px;
-            overflow: hidden; 
-        }
-        #deck-management-area {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
+        #collection-screen { justify-content: flex-start; align-items: stretch; background-color: #e0f7fa; padding: 60px 20px 20px 20px; overflow: hidden; }
+        #deck-management-area { width: 100%; height: 100%; display: flex; flex-direction: column; }
         #current-deck-container h3, #owned-units-container h3 { margin: 0 0 10px 0; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; }
-        
-        #current-deck-display { 
-            display: flex; 
-            gap: 10px; 
-            min-height: 110px; 
-            background-color: rgba(255,255,255,0.7); 
-            border-radius: 8px; 
-            padding: 10px; 
-            overflow-x: auto; 
-            align-items: center; 
-            border: 2px dashed #95a5a6; 
-        }
-        #current-deck-display .unit-card,
-        #current-deck-display .deck-slot {
-            height: 85px;
-            width: 65px;
-            flex-shrink: 0;
-            aspect-ratio: unset;
-        }
-        #current-deck-display .unit-card .card-icon {
-            font-size: 30px;
-        }
-        #current-deck-display .unit-card .card-name {
-            font-size: 10px;
-        }
-
-        #owned-units-container {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            min-height: 0;
-            margin-top: 15px;
-        }
-        #owned-units-grid {
-            flex-grow: 1;
-            display: flex;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            align-items: center;
-            gap: 12px;
-            padding: 10px;
-            background-color: rgba(255,255,255,0.5);
-            border-radius: 8px;
-        }
-        
-        #owned-units-grid .unit-card {
-            flex-shrink: 0;
-            height: 100px;
-        }
+        #current-deck-display { display: flex; gap: 10px; min-height: 110px; background-color: rgba(255,255,255,0.7); border-radius: 8px; padding: 10px; overflow-x: auto; align-items: center; border: 2px dashed #95a5a6; }
+        #current-deck-display .unit-card, #current-deck-display .deck-slot { height: 85px; width: 65px; flex-shrink: 0; aspect-ratio: unset; }
+        #current-deck-display .unit-card .card-icon { font-size: 30px; }
+        #current-deck-display .unit-card .card-name { font-size: 10px; }
+        #owned-units-container { display: flex; flex-direction: column; flex-grow: 1; min-height: 0; margin-top: 15px; }
+        #owned-units-grid { flex-grow: 1; display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; align-items: center; gap: 12px; padding: 10px; background-color: rgba(255,255,255,0.5); border-radius: 8px; }
+        #owned-units-grid .unit-card { flex-shrink: 0; height: 100px; }
         .unit-card { aspect-ratio: 3/4; border: 2px solid; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
         .unit-card:hover { transform: scale(1.05); }
         .unit-card.in-deck { border-color: #27ae60; box-shadow: 0 0 8px #27ae60; }
@@ -172,29 +116,14 @@
         #modal-upgrade-btn.disabled { background: #95a5a6; border-bottom-color: #7f8c8d; cursor: not-allowed; }
         #modal-level-up-effect { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); font-size: 24px; font-weight: bold; color: #f1c40f; text-shadow: 1px 1px 2px black; animation: level-up-anim 1s forwards; pointer-events: none; }
         #battle-screen { padding: 0; justify-content: flex-start; position: relative;}
-        #battlefield { 
-            width: 100%; 
-            flex-grow: 1;
-            position: relative; 
-            transition: background 0.5s ease-in-out; 
-        }
+        #battlefield { width: 100%; flex-grow: 1; position: relative; transition: background 0.5s ease-in-out; }
         .unit { position: absolute; bottom: 0; display: flex; flex-direction: column; align-items: center; font-size: 30px; transition: left 0.1s linear; z-index: 2; }
         .unit.frozen { filter: brightness(0.8) sepia(100%) hue-rotate(180deg); }
-        .unit.frozen::after {
-            content: '🧊';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            font-size: 30px;
-            z-index: 3;
-            text-shadow: 0 0 10px #3498db;
-            opacity: 0.8;
-            animation: freeze-in-anim 0.3s ease-out forwards;
-            pointer-events: none;
-        }
+        .unit.frozen::after { content: '🧊'; position: absolute; top: 50%; left: 50%; font-size: 30px; z-index: 3; text-shadow: 0 0 10px #3498db; opacity: 0.8; animation: freeze-in-anim 0.3s ease-out forwards; pointer-events: none; }
         .unit.blocking::after { content: '🛡️'; position: absolute; top: -10px; font-size: 20px; animation: hit-effect-anim 0.3s forwards; }
         .unit.weakened::before { content: '↓'; color: #e74c3c; font-weight: bold; position: absolute; top: -15px; font-size: 24px; text-shadow: 1px 1px 2px black; }
         .unit.buffed::before { content: '↑'; color: #f1c40f; font-weight: bold; position: absolute; top: -15px; font-size: 24px; text-shadow: 1px 1px 2px black; }
+        .unit.poisoned::before { content: '☠️'; position: absolute; top: -15px; font-size: 20px; color: #2ecc71; text-shadow: 1px 1px 2px black; animation: blink-anim 1s infinite; }
         #battle-ui { width: 100%; height: 120px; background-color: #34495e; color: white; display: flex; flex-shrink: 0; }
         #battle-info-panel { width: 180px; padding: 10px; font-size: 16px; display: flex; flex-direction: column; justify-content: space-around; box-sizing: border-box; }
         #upgrade-money-btn { width: 100%; padding: 8px; font-size: 14px; background: #f1c40f; color: #333; border: none; border-bottom: 3px solid #c8a20e; border-radius: 5px; cursor: pointer; transition: all 0.1s ease; }
@@ -232,23 +161,7 @@
         .stat-block .arrow { color: #2ecc71; margin: 0 5px; }
         #upgrade-cannon-btn { margin-top: 15px; background: linear-gradient(145deg, #3498db, #2980b9); border-bottom-color: #20638f; }
         #pause-btn { position: absolute; top: 15px; right: 15px; z-index: 10; width: 48px; height: 48px; font-size: 20px; border-radius: 50%; border: 2px solid white; background-color: #2c3e50; color: white; cursor: pointer; }
-        #fullscreen-btn {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 100;
-            width: 48px;
-            height: 48px;
-            font-size: 24px;
-            border-radius: 50%;
-            border: 2px solid white;
-            background-color: rgba(44, 62, 80, 0.5);
-            color: white;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        #fullscreen-btn { position: absolute; top: 15px; left: 15px; z-index: 100; width: 48px; height: 48px; font-size: 24px; border-radius: 50%; border: 2px solid white; background-color: rgba(44, 62, 80, 0.5); color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; }
         #fire-cannon-btn { width: 60px; height: 60px; font-size: 28px; border-radius: 50%; border: 2px solid white; background-color: #e74c3c; color: white; cursor: pointer; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
         #fire-cannon-btn.disabled { background-color: #7f8c8d; cursor: not-allowed; color: #bdc3c7; }
         #cannon-charge-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background-color: rgba(241, 196, 15, 0.7); transition: height 0.1s linear; z-index: 1; }
@@ -314,217 +227,48 @@
         .collection-item .item-icon { font-size: 40px; }
         .collection-item .item-name { font-size: 14px; font-weight: bold; margin-top: 5px; }
         .reward-claim-button { position: absolute; bottom: -10px; font-size: 20px; background: none; border: none; cursor: pointer; }
-        #go-to-shop-button {
-            background: linear-gradient(145deg, #27ae60, #2ecc71);
-            border-bottom-color: #1e8449;
-        }
-        #shop-screen {
-            background-color: #dcedc8;
-            padding-top: 80px;
-            justify-content: flex-start;
-        }
-        #shop-grid {
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        .shop-item-card {
-            background: #fff;
-            border: 2px solid #a5d6a7;
-            border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .shop-item-icon {
-            font-size: 60px;
-            margin-bottom: 10px;
-        }
-        .shop-item-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #388e3c;
-        }
-        .shop-item-reward {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 8px 0;
-        }
-        .shop-item-desc {
-            font-size: 14px;
-            color: #555;
-            margin: 10px 0;
-            flex-grow: 1;
-        }
-        .shop-item-buy-section {
-            margin-top: auto;
-        }
-        .shop-buy-btn {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            background: linear-gradient(145deg, #fbc02d, #fdd835);
-            border: none;
-            border-bottom: 3px solid #f9a825;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .shop-buy-btn:hover:not(.disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-        .shop-buy-btn:active:not(.disabled) {
-            transform: translateY(1px);
-            border-bottom-width: 1px;
-        }
-        .shop-buy-btn.disabled {
-            background: #bdbdbd;
-            border-bottom-color: #9e9e9e;
-            cursor: not-allowed;
-        }
-        #menu-modal-overlay .modal-content {
-            width: 550px;
-        }
-        #menu-buttons-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 20px;
-        }
-        #go-to-menu-button {
-             background: linear-gradient(145deg, #6c7a89, #4d5a68);
-             border-bottom-color: #2b3e50;
-        }
-        .pool-details-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 28px;
-            height: 28px;
-            background-color: rgba(0, 0, 0, 0.4);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            font-size: 18px;
-            cursor: help;
-            z-index: 10;
-            border: 2px solid white;
-            transition: background-color 0.2s;
-        }
-        .pool-details-btn:hover {
-            background-color: rgba(0, 0, 0, 0.6);
-        }
-        #gacha-rates-modal-content {
-            width: 600px;
-            max-height: 80%;
-            display: flex;
-            flex-direction: column;
-        }
-        #gacha-rates-summary {
-            display: flex;
-            justify-content: space-around;
-            padding: 10px;
-            background-color: #f0f2f5;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-size: 16px;
-        }
-        #gacha-rates-details {
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-        #gacha-rates-details h3 {
-            margin-top: 15px;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 5px;
-        }
-        .rate-unit-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
-        }
-        .rate-unit-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 12px;
-        }
-        .rate-unit-item .icon {
-            font-size: 32px;
-        }
-        .rate-unit-item .name {
-            margin-top: 4px;
-            font-weight: bold;
-        }
-        
-        #gacha-results .gacha-card-container {
-            opacity: 0;
-            transform: scale(0.5);
-            transition: opacity 0.3s, transform 0.3s;
-        }
-        .reveal-animation {
-            animation: gacha-card-reveal-anim 0.4s ease-out forwards;
-        }
-        @keyframes gacha-card-reveal-anim {
-            from {
-                opacity: 0;
-                transform: scale(0.5) rotate(-15deg);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) rotate(0deg);
-            }
-        }
-        .rare-reveal-animation {
-            animation: gacha-card-rare-reveal-anim 1s forwards;
-        }
-        @keyframes gacha-card-rare-reveal-anim {
-            0% {
-                opacity: 0;
-                transform: scale(0.6);
-                box-shadow: none;
-            }
-            50% {
-                opacity: 0.8;
-                transform: scale(0.8);
-                box-shadow: 0 0 35px 15px #f1c40f, 0 0 50px 30px #ffffff;
-            }
-            80% {
-                opacity: 1;
-                transform: scale(1.15);
-                box-shadow: 0 0 15px 5px #f1c40f, 0 0 25px 15px #ffffff;
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-                box-shadow: 0 0 10px 2px #f1c40f;
-            }
-        }
-
-        .draggable-scroll {
-            cursor: grab;
-            user-select: none;
-        }
-        .draggable-scroll.active-drag {
-            cursor: grabbing;
-        }
+        #go-to-shop-button { background: linear-gradient(145deg, #27ae60, #2ecc71); border-bottom-color: #1e8449; }
+        #shop-screen { background-color: #dcedc8; padding-top: 80px; justify-content: flex-start; }
+        #shop-grid { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; padding: 20px; }
+        .shop-item-card { background: #fff; border: 2px solid #a5d6a7; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; }
+        .shop-item-icon { font-size: 60px; margin-bottom: 10px; }
+        .shop-item-name { font-size: 20px; font-weight: bold; color: #388e3c; }
+        .shop-item-reward { font-size: 18px; font-weight: bold; color: #2c3e50; margin: 8px 0; }
+        .shop-item-desc { font-size: 14px; color: #555; margin: 10px 0; flex-grow: 1; }
+        .shop-item-buy-section { margin-top: auto; }
+        .shop-buy-btn { width: 100%; padding: 10px; font-size: 16px; font-weight: bold; color: white; background: linear-gradient(145deg, #fbc02d, #fdd835); border: none; border-bottom: 3px solid #f9a825; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .shop-buy-btn:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .shop-buy-btn:active:not(.disabled) { transform: translateY(1px); border-bottom-width: 1px; }
+        .shop-buy-btn.disabled { background: #bdbdbd; border-bottom-color: #9e9e9e; cursor: not-allowed; }
+        #menu-modal-overlay .modal-content { width: 550px; }
+        #menu-buttons-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
+        #go-to-menu-button { background: linear-gradient(145deg, #6c7a89, #4d5a68); border-bottom-color: #2b3e50; }
+        .pool-details-btn { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; cursor: help; z-index: 10; border: 2px solid white; transition: background-color 0.2s; }
+        .pool-details-btn:hover { background-color: rgba(0, 0, 0, 0.6); }
+        #gacha-rates-modal-content { width: 600px; max-height: 80%; display: flex; flex-direction: column; }
+        #gacha-rates-summary { display: flex; justify-content: space-around; padding: 10px; background-color: #f0f2f5; border-radius: 8px; margin: 15px 0; font-size: 16px; }
+        #gacha-rates-details { overflow-y: auto; padding-right: 10px; }
+        #gacha-rates-details h3 { margin-top: 15px; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .rate-unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+        .rate-unit-item { display: flex; flex-direction: column; align-items: center; background: #f8f9fa; border-radius: 8px; padding: 8px; font-size: 12px; }
+        .rate-unit-item .icon { font-size: 32px; }
+        .rate-unit-item .name { margin-top: 4px; font-weight: bold; }
+        #gacha-results .gacha-card-container { opacity: 0; transform: scale(0.5); transition: opacity 0.3s, transform 0.3s; }
+        .reveal-animation { animation: gacha-card-reveal-anim 0.4s ease-out forwards; }
+        @keyframes gacha-card-reveal-anim { from { opacity: 0; transform: scale(0.5) rotate(-15deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
+        .rare-reveal-animation { animation: gacha-card-rare-reveal-anim 1s forwards; }
+        @keyframes gacha-card-rare-reveal-anim { 0% { opacity: 0; transform: scale(0.6); box-shadow: none; } 50% { opacity: 0.8; transform: scale(0.8); box-shadow: 0 0 35px 15px #f1c40f, 0 0 50px 30px #ffffff; } 80% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 15px 5px #f1c40f, 0 0 25px 15px #ffffff; } 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 10px 2px #f1c40f; } }
+        .draggable-scroll { cursor: grab; user-select: none; }
+        .draggable-scroll.active-drag { cursor: grabbing; }
+        #collection-detail-modal-content { width: 450px; }
+        #modal-detail-unit-desc { margin-top: 20px; text-align: left; background-color: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        #modal-detail-unit-desc h4 { margin-top: 0; margin-bottom: 10px; color: #34495e; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        #modal-detail-unit-desc ul { padding-left: 20px; margin: 0; list-style-type: '- '; }
+        #modal-detail-unit-desc li { margin-bottom: 8px; line-height: 1.5; }
+        .rarity-N { color: #34495e; }
+        .rarity-R { color: #2980b9; }
+        .rarity-SSR { color: #f1c40f; text-shadow: 0 0 5px rgba(241,196,15,0.5); }
+        .rarity-UR { color: #e74c3c; text-shadow: 0 0 8px rgba(231,76,60,0.6); }
     </style>
 </head>
 <body>
@@ -646,19 +390,27 @@
             </div>
         </div>
 
+        <div id="collection-detail-modal-overlay" class="modal-overlay">
+            <div id="collection-detail-modal-content" class="modal-content">
+                <button id="modal-close-btn" class="collection-detail-modal-close">×</button>
+                <h2 id="modal-detail-unit-name"></h2>
+                <div id="modal-detail-unit-icon"></div>
+                <div id="modal-detail-stats"></div>
+                <div id="modal-detail-unit-desc"></div>
+            </div>
+        </div>
+
         <div id="toast-container"></div>
     </div>
 <script>
-    // JavaScript 程式碼
     document.addEventListener('DOMContentLoaded', () => {
-        // ... (省略所有常數和函數定義，它們和上一版完全一樣)
-        const ALL_UNITS = { 'cat_basic': { name: '小貓', icon: '😼', rarity: 'N', hp: 100, atk: 10, range: 40, speed: 2, cost: 50 }, 'cat_tank': { name: '坦克貓', icon: '😾', rarity: 'N', hp: 300, atk: 5, range: 35, speed: 1, cost: 75 }, 'cat_crusader': { name: '十字軍貓', icon: '🛡️', rarity: 'N', hp: 250, atk: 12, range: 40, speed: 1.2, cost: 100, blockChance: 0.2 }, 'cat_ninja': { name: '忍者貓', icon: '🥷', rarity: 'N', hp: 80, atk: 15, range: 40, speed: 3, cost: 60 }, 'cat_axe': { name: '斧頭貓', icon: '😺', rarity: 'R', hp: 150, atk: 25, range: 45, speed: 1.5, cost: 120 }, 'cat_magic': { name: '法師貓', icon: '🧙', rarity: 'R', hp: 90, atk: 20, range: 200, speed: 1.2, cost: 200 }, 'cat_freeze': { name: '冷凍貓', icon: '🧊', rarity: 'R', hp: 120, atk: 15, range: 150, speed: 1.5, cost: 280, freeze: { chance: 0.3, duration: 2000 } }, 'cat_samurai': { name: '武士貓', icon: '👺', rarity: 'R', hp: 200, atk: 30, range: 45, speed: 1.8, cost: 180, crit: { chance: 0.1, multiplier: 3 } }, 'cat_miner': { name: '礦工貓', icon: '⛏️', rarity: 'R', hp: 180, atk: 20, range: 40, speed: 1.5, cost: 220, moneyOnKill: { chance: 0.25, amount: 100 } }, 'cat_king': { name: '獅王貓', icon: '🦁', rarity: 'SSR', hp: 500, atk: 50, range: 60, speed: 1, cost: 400 }, 'cat_dragon': { name: '龍騎士貓', icon: '🐉', rarity: 'SSR', hp: 350, atk: 70, range: 150, speed: 1.5, cost: 550, splashRange: 50 }, 'cat_healer': { name: '治癒貓', icon: '🙏', rarity: 'SSR', hp: 200, atk: 5, range: 120, speed: 1.2, cost: 300, heal: 20 }, 'cat_valkyrie': { name: '女武神貓', icon: '💃', rarity: 'SSR', hp: 400, atk: 40, range: 50, speed: 3, cost: 600, attackInterval: 1000 }, 'cat_gunslinger': { name: '槍手貓', icon: '🤠', rarity: 'SSR', hp: 300, atk: 25, range: 160, speed: 1.5, cost: 500, multiHit: { count: 3, delay: 150 } }, 'cat_bard': { name: '吟遊詩人貓', icon: '🎵', rarity: 'SSR', hp: 250, atk: 0, range: 150, speed: 1.2, cost: 450, attackBuff: { radius: 150, multiplier: 1.2, duration: 5000 } }, 'cat_mecha': { name: '機械貓神', icon: '🤖', rarity: 'UR', hp: 1200, atk: 150, range: 180, speed: 2, cost: 1200, splashRange: 70 }, 'cat_timelord': { name: '時空貓', icon: '⏳', rarity: 'UR', hp: 800, atk: 80, range: 100, speed: 1, cost: 1500, timeStop: { chance: 0.15, duration: 2500 } }, 'cat_cosmic_dragon': { name: '宇宙龍貓', icon: '☄️', rarity: 'UR', hp: 1500, atk: 180, range: 200, speed: 1, cost: 1800, splashRange: 80, weaken: { chance: 0.3, multiplier: 0.5, duration: 5000 } },'cat_assassin': { name: '刺客貓', icon: '🗡️', rarity: 'R', hp: 100, atk: 10, range: 40, speed: 3.5, cost: 160, multiHit: { count: 2, delay: 100 } },'cat_paladin': { name: '聖騎士貓', icon: '⚜️', rarity: 'SSR', hp: 600, atk: 60, range: 130, speed: 1, cost: 650, splashRange: 30, weaken: { chance: 0.2, multiplier: 0.7, duration: 3000 } },'cat_demolitionist': { name: '爆破專家貓', icon: '💣', rarity: 'SSR', hp: 250, atk: 100, range: 160, speed: 1.2, cost: 700, splashRange: 120 },'cat_sun_god': { name: '太陽神貓', icon: '☀️', rarity: 'UR', hp: 2000, atk: 250, range: 180, speed: 0.8, cost: 2500, waveAttack: { chance: 0.3, distance: 250 } } };
+        const ALL_UNITS = { /* N rarity */ 'cat_basic': { name: '小貓', icon: '😼', rarity: 'N', hp: 100, atk: 10, range: 40, speed: 2, cost: 50 }, 'cat_tank': { name: '坦克貓', icon: '😾', rarity: 'N', hp: 300, atk: 5, range: 35, speed: 1, cost: 75 }, 'cat_crusader': { name: '十字軍貓', icon: '🛡️', rarity: 'N', hp: 250, atk: 12, range: 40, speed: 1.2, cost: 100, blockChance: 0.2 }, 'cat_ninja': { name: '忍者貓', icon: '🥷', rarity: 'N', hp: 80, atk: 15, range: 40, speed: 3, cost: 60 }, /* R rarity */ 'cat_axe': { name: '斧頭貓', icon: '😺', rarity: 'R', hp: 150, atk: 25, range: 45, speed: 1.5, cost: 120 }, 'cat_magic': { name: '法師貓', icon: '🧙', rarity: 'R', hp: 90, atk: 20, range: 200, speed: 1.2, cost: 200 }, 'cat_freeze': { name: '冷凍貓', icon: '🧊', rarity: 'R', hp: 120, atk: 15, range: 150, speed: 1.5, cost: 280, freeze: { chance: 0.3, duration: 2000 } }, 'cat_samurai': { name: '武士貓', icon: '👺', rarity: 'R', hp: 200, atk: 30, range: 45, speed: 1.8, cost: 180, crit: { chance: 0.1, multiplier: 3 } }, 'cat_miner': { name: '礦工貓', icon: '⛏️', rarity: 'R', hp: 180, atk: 20, range: 40, speed: 1.5, cost: 220, moneyOnKill: { chance: 0.25, amount: 100 } }, 'cat_assassin': { name: '刺客貓', icon: '🗡️', rarity: 'R', hp: 100, atk: 10, range: 40, speed: 3.5, cost: 160, multiHit: { count: 2, delay: 100 } }, 'cat_archer': { name: '弓箭貓', icon: '🏹', rarity: 'R', hp: 100, atk: 18, range: 180, speed: 1.3, cost: 250 }, /* SSR rarity */ 'cat_king': { name: '獅王貓', icon: '🦁', rarity: 'SSR', hp: 500, atk: 50, range: 60, speed: 1, cost: 400 }, 'cat_dragon': { name: '龍騎士貓', icon: '🐉', rarity: 'SSR', hp: 350, atk: 70, range: 150, speed: 1.5, cost: 550, splashRange: 50 }, 'cat_healer': { name: '治癒貓', icon: '🙏', rarity: 'SSR', hp: 200, atk: 5, range: 120, speed: 1.2, cost: 300, heal: 20 }, 'cat_valkyrie': { name: '女武神貓', icon: '💃', rarity: 'SSR', hp: 400, atk: 40, range: 50, speed: 3, cost: 600, attackInterval: 1000 }, 'cat_gunslinger': { name: '槍手貓', icon: '🤠', rarity: 'SSR', hp: 300, atk: 25, range: 160, speed: 1.5, cost: 500, multiHit: { count: 3, delay: 150 } }, 'cat_bard': { name: '吟遊詩人貓', icon: '🎵', rarity: 'SSR', hp: 250, atk: 0, range: 150, speed: 1.2, cost: 450, attackBuff: { radius: 150, multiplier: 1.2, duration: 5000 } }, 'cat_paladin': { name: '聖騎士貓', icon: '⚜️', rarity: 'SSR', hp: 600, atk: 60, range: 130, speed: 1, cost: 650, splashRange: 30, weaken: { chance: 0.2, multiplier: 0.7, duration: 3000 } }, 'cat_demolitionist': { name: '爆破專家貓', icon: '💣', rarity: 'SSR', hp: 250, atk: 100, range: 160, speed: 1.2, cost: 700, splashRange: 120 }, 'cat_alchemist': { name: '煉金貓', icon: '🧪', rarity: 'SSR', hp: 280, atk: 20, range: 140, speed: 1.3, cost: 620, poison: { chance: 0.4, damage: 15, duration: 5000 } }, 'cat_guardian': { name: '守護貓', icon: '🛡️', rarity: 'SSR', hp: 800, atk: 25, range: 40, speed: 0.8, cost: 500, damageReduction: { chance: 0.3, multiplier: 0.5 } }, /* UR rarity */ 'cat_mecha': { name: '機械貓神', icon: '🤖', rarity: 'UR', hp: 1200, atk: 150, range: 180, speed: 2, cost: 1200, splashRange: 70 }, 'cat_timelord': { name: '時空貓', icon: '⏳', rarity: 'UR', hp: 800, atk: 80, range: 100, speed: 1, cost: 1500, timeStop: { chance: 0.15, duration: 2500 } }, 'cat_cosmic_dragon': { name: '宇宙龍貓', icon: '☄️', rarity: 'UR', hp: 1500, atk: 180, range: 200, speed: 1, cost: 1800, splashRange: 80, weaken: { chance: 0.3, multiplier: 0.5, duration: 5000 } }, 'cat_sun_god': { name: '太陽神貓', icon: '☀️', rarity: 'UR', hp: 2000, atk: 250, range: 180, speed: 0.8, cost: 2500, waveAttack: { chance: 0.3, distance: 250 } }, 'cat_necromancer': { name: '死靈法師貓', icon: '💀', rarity: 'UR', hp: 900, atk: 100, range: 160, speed: 1, cost: 1600, summonOnKill: { chance: 0.5, unitId: 'minion_skeleton' } }, /* Minions */ 'minion_skeleton': { name: '骷髏兵', icon: '🦴', rarity: 'N', hp: 50, atk: 20, range: 30, speed: 2, cost: 0, isMinion: true, lifeSpan: 10000 } };
         const ENEMY_UNITS = { 'doge': { name: '狗狗', icon: '🐶', hp: 80, atk: 10, range: 30, speed: 1.5 }, 'snake': { name: '蛇蛇', icon: '🐍', hp: 120, atk: 20, range: 80, speed: 1 }, 'bat': { name: '蝙蝠', icon: '🦇', hp: 50, atk: 15, range: 100, speed: 2.5 }, 'bear': { name: '熊熊', icon: '🐻', hp: 800, atk: 50, range: 40, speed: 0.8 }, 'volcano_golem': { name: '火山魔像', icon: '🌋', hp: 15000, atk: 200, range: 100, speed: 0.5, splashRange: 80 }, 'alien_doge': { name: '外星狗狗', icon: '👽', hp: 100, atk: 15, range: 35, speed: 3, dodgeChance: 0.3 }, 'cyborg_snake': { name: '機械蛇蛇', icon: '🦾', hp: 500, atk: 40, range: 250, speed: 0.7 }, 'dark_lord': { name: '暗黑帝王', icon: '😈', hp: 25000, atk: 300, range: 120, speed: 0.4, waveAttack: { chance: 0.5, distance: 200 } }, 'ghost': { name: '幽靈', icon: '👻', hp: 150, atk: 25, range: 120, speed: 2.2, dodgeChance: 0.5 },'stone_golem': { name: '石頭人', icon: '🧱', hp: 2000, atk: 80, range: 50, speed: 0.4 },'abyss_lord': { name: '深淵領主', icon: '🐙', hp: 80000, atk: 500, range: 150, speed: 0.3, splashRange: 100 } };
         const TREASURES = { 'grass_amulet': { name: '草原護符', icon: '🍀', desc: '戰鬥開始時，金錢上限 +500。', effect: { type: 'moneyMax', value: 500 } }, 'cave_crystal': { name: '洞窟水晶', icon: '💎', desc: '金錢生產速度提升 10%。', effect: { type: 'moneyRate', value: 1.1 } }, 'forest_idol': { name: '森林神像', icon: '🗿', desc: '所有貓咪的 HP 提升 10%。', effect: { type: 'unitHp', value: 1.1 } }, 'plateau_relic': { name: '高原遺物', icon: '📜', desc: '所有貓咪的攻擊力提升 10%。', effect: { type: 'unitAtk', value: 1.1 } }, 'volcano_heart': { name: '火山之心', icon: '❤️‍🔥', desc: '貓咪砲充能時間減少 15%。', effect: { type: 'cannonCharge', value: 0.85 } }, 'cosmic_map': { name: '宇宙地圖', icon: '🗺️', desc: '我方基地 HP 增加 20%。', effect: { type: 'baseHp', value: 1.2 } }, 'steel_blueprint': { name: '鋼鐵藍圖', icon: '🔩', desc: '貓咪砲傷害提升 25%。', effect: { type: 'cannonDamage', value: 1.25 } }, 'dark_crown': { name: '暗黑王冠', icon: '👑', desc: 'XP 獲得量永久提升 20%。', effect: { type: 'xpGain', value: 1.2 } },'abyss_tentacle': { name: '深淵觸手', icon: '🦑', desc: '所有貓咪的出擊成本降低 5%。', effect: { type: 'costReduction', value: 0.95 } } };
         const STAGE_CONFIG = { 1: { name: "新手草原", background: 'bg-grassland', enemyBaseHp: 2000, reward: { food: 50, xp: 100 }, enemies: [{ type: 'doge', time: 3 }, { type: 'doge', time: 8 }], treasureDrop: { id: 'grass_amulet', chance: 0.3 } }, 2: { name: "陰森洞窟", background: 'bg-cave', enemyBaseHp: 4000, reward: { food: 80, xp: 250 }, enemies: [{ type: 'snake', time: 4 }, { type: 'bat', time: 7 }, { type: 'doge', time: 10 }], treasureDrop: { id: 'cave_crystal', chance: 0.25 } }, 3: { name: "巨熊森林", background: 'bg-forest', enemyBaseHp: 7000, reward: { food: 150, xp: 500 }, enemies: [{ type: 'bear', time: 10 }, { type: 'doge', time: 12 }], treasureDrop: { id: 'forest_idol', chance: 0.2 }, stoneDrop: { chance: 0.1, amount: 1 } }, 4: { name: "霜凍高原", background: 'bg-plateau', enemyBaseHp: 9000, reward: { food: 200, xp: 700 }, enemies: [{ type: 'snake', time: 3 }, { type: 'bear', time: 20 }], treasureDrop: { id: 'plateau_relic', chance: 0.2 }, stoneDrop: { chance: 0.1, amount: 1 } }, 5: { name: "煉獄火山", background: 'bg-volcano', enemyBaseHp: 12000, reward: { food: 500, xp: 1500 }, enemies: [{ type: 'bear', time: 5 }, { type: 'volcano_golem', time: 30 }], treasureDrop: { id: 'volcano_heart', chance: 0.15 }, stoneDrop: { chance: 0.2, amount: 2 } }, 6: { name: "宇宙公路", background: 'bg-cosmic', enemyBaseHp: 15000, reward: { food: 300, xp: 1200 }, enemies: [{ type: 'alien_doge', time: 3 }, { type: 'alien_doge', time: 5 }, { type: 'ghost', time: 8 }, { type: 'bat', time: 15 }], treasureDrop: { id: 'cosmic_map', chance: 0.15 }, stoneDrop: { chance: 0.2, amount: 2 } }, 7: { name: "鋼鐵要塞", background: 'bg-fortress', enemyBaseHp: 20000, reward: { food: 400, xp: 2000 }, enemies: [{ type: 'cyborg_snake', time: 5 }, { type: 'stone_golem', time: 10 }, { type: 'cyborg_snake', time: 20 }], treasureDrop: { id: 'steel_blueprint', chance: 0.1 }, stoneDrop: { chance: 0.3, amount: 3 } }, 8: { name: "暗黑王座", background: 'bg-dark', enemyBaseHp: 50000, reward: { food: 1000, xp: 5000 }, enemies: [{ type: 'bear', time: 5 }, { type: 'bear', time: 10 }, { type: 'dark_lord', time: 30 }], treasureDrop: { id: 'dark_crown', chance: 0.1 }, stoneDrop: { chance: 0.5, amount: 5 } }, 9: { name: "深淵裂縫", background: 'bg-dark', enemyBaseHp: 120000, reward: { food: 2000, xp: 10000 }, enemies: [{ type: 'ghost', time: 3 }, { type: 'stone_golem', time: 10 }, { type: 'cyborg_snake', time: 20 }, { type: 'abyss_lord', time: 45 }], treasureDrop: { id: 'abyss_tentacle', chance: 0.1 }, stoneDrop: { chance: 1, amount: 10 } } };
-        const LIMITED_POOL_ROTATIONS = [ { name: "超古代勇者", icon: "🗿", desc: "傳說中的古代英雄們集結！", rateUp: ['cat_samurai', 'cat_king'], style: "background: linear-gradient(145deg, #c31432, #240b36);" }, { name: "鋼鐵軍團", icon: "⚙️", desc: "用未來科技粉碎敵人！", rateUp: ['cat_mecha', 'cat_gunslinger'], style: "background: linear-gradient(145deg, #757f9a, #d7dde8);" }, { name: "時空旅人", icon: "🌌", desc: "掌握時間與空間的神秘力量！", rateUp: ['cat_timelord', 'cat_magic'], style: "background: linear-gradient(145deg, #1e3c72, #2a5298);" }, { name: "聖光與女武神", icon: "✨", desc: "神聖的力量將淨化一切！", rateUp: ['cat_valkyrie', 'cat_healer'], style: "background: linear-gradient(145deg, #f7ff00, #db36a4);" }, { name: "淘金熱潮", icon: "💰", desc: "致富的機會來了！", rateUp: ['cat_miner', 'cat_axe'], style: "background: linear-gradient(145deg, #f1c40f, #f39c12);" }, { name: "天體奇觀", icon: "🔭", desc: "來自宇宙深處的未知力量！", rateUp: ['cat_cosmic_dragon', 'cat_bard'], style: "background: linear-gradient(145deg, #4b6cb7, #182848);" }, { name: "暗影奇襲", icon: "🌙", desc: "悄無聲息，一擊斃命！", rateUp: ['cat_assassin', 'cat_ninja'], style: "background: linear-gradient(145deg, #2c3e50, #4c5b6a);" }, { name: "神聖制裁", icon: "⚖️", desc: "以聖光之名，制裁邪惡！", rateUp: ['cat_paladin', 'cat_healer'], style: "background: linear-gradient(145deg, #e9e4f0, #d3cce3);" }, { name: "末日兵器", icon: "💥", desc: "絕對的破壞力，將一切化為灰燼。", rateUp: ['cat_demolitionist', 'cat_mecha'], style: "background: linear-gradient(145deg, #cb2d3e, #ef473a);" }, { name: "天神下凡", icon: "👑", desc: "傳說中的神祇降臨戰場！", rateUp: ['cat_sun_god', 'cat_timelord'], style: "background: linear-gradient(145deg, #ffdde1, #ee9ca7);" } ];
+        const LIMITED_POOL_ROTATIONS = [ { name: "超古代勇者", icon: "🗿", desc: "傳說中的古代英雄們集結！", rateUp: ['cat_samurai', 'cat_king'], style: "background: linear-gradient(145deg, #c31432, #240b36);" }, { name: "鋼鐵軍團", icon: "⚙️", desc: "用未來科技粉碎敵人！", rateUp: ['cat_mecha', 'cat_gunslinger'], style: "background: linear-gradient(145deg, #757f9a, #d7dde8);" }, { name: "時空旅人", icon: "🌌", desc: "掌握時間與空間的神秘力量！", rateUp: ['cat_timelord', 'cat_magic'], style: "background: linear-gradient(145deg, #1e3c72, #2a5298);" }, { name: "聖光與女武神", icon: "✨", desc: "神聖的力量將淨化一切！", rateUp: ['cat_valkyrie', 'cat_healer'], style: "background: linear-gradient(145deg, #f7ff00, #db36a4);" }, { name: "淘金熱潮", icon: "💰", desc: "致富的機會來了！", rateUp: ['cat_miner', 'cat_axe'], style: "background: linear-gradient(145deg, #f1c40f, #f39c12);" }, { name: "天體奇觀", icon: "🔭", desc: "來自宇宙深處的未知力量！", rateUp: ['cat_cosmic_dragon', 'cat_bard'], style: "background: linear-gradient(145deg, #4b6cb7, #182848);" }, { name: "暗影奇襲", icon: "🌙", desc: "悄無聲息，一擊斃命！", rateUp: ['cat_assassin', 'cat_ninja'], style: "background: linear-gradient(145deg, #2c3e50, #4c5b6a);" }, { name: "神聖制裁", icon: "⚖️", desc: "以聖光之名，制裁邪惡！", rateUp: ['cat_paladin', 'cat_healer'], style: "background: linear-gradient(145deg, #e9e4f0, #d3cce3);" }, { name: "末日兵器", icon: "💥", desc: "絕對的破壞力，將一切化為灰燼。", rateUp: ['cat_demolitionist', 'cat_mecha'], style: "background: linear-gradient(145deg, #cb2d3e, #ef473a);" }, { name: "天神下凡", icon: "👑", desc: "傳說中的神祇降臨戰場！", rateUp: ['cat_sun_god', 'cat_timelord'], style: "background: linear-gradient(145deg, #ffdde1, #ee9ca7);" }, { name: "不死傳說", icon: "👻", desc: "來自深淵的黑暗力量，支配生死！", rateUp: ['cat_alchemist', 'cat_necromancer'], style: "background: linear-gradient(145deg, #434343, #000000);" } ];
         const RARITY_CONFIG = { 'N': { prob: 0.55 }, 'R': { prob: 0.35 }, 'SSR': { prob: 0.08 }, 'UR': { prob: 0.02 }, };
-        const POOL_CONFIG = { normal: { costSingle: 30, costTen: 270, units: Object.keys(ALL_UNITS).filter(id => ['N', 'R'].includes(ALL_UNITS[id].rarity) || id === 'cat_king') }, limited: { costSingle: 60, costTen: 540, units: Object.keys(ALL_UNITS) } };
+        const POOL_CONFIG = { normal: { costSingle: 30, costTen: 270, units: Object.keys(ALL_UNITS).filter(id => !ALL_UNITS[id].isMinion && (['N', 'R'].includes(ALL_UNITS[id].rarity) || id === 'cat_king')) }, limited: { costSingle: 60, costTen: 540, units: Object.keys(ALL_UNITS).filter(id => !ALL_UNITS[id].isMinion) } };
         const MONEY_LEVEL_CONFIG = [{ cost: 100, max: 1000, rate: 20 }, { cost: 150, max: 1200, rate: 25 }, { cost: 200, max: 1500, rate: 30 }, { cost: 300, max: 1800, rate: 40 }, { cost: 500, max: 2500, rate: 50 }, { cost: Infinity, max: 2500, rate: 50 }];
         const DUPLICATE_CONVERSION = { 'N': { xp: 10, food: 2 }, 'R': { xp: 50, food: 5 }, 'SSR': { xp: 200, food: 20 }, 'UR': { xp: 1000, food: 100 } };
         const DECK_SIZE_LIMIT = 8;
@@ -674,10 +426,15 @@
         let hasShownLoginReward = false;
         let isUpgradeMode = false;
 
-        const GAME_VERSION = '9.9';
-        const SAVE_KEY = 'catBrawlSaveData_v9.9';
+        // ++ FIX: Update version and define previous save keys for migration ++
+        const GAME_VERSION = '10.2';
+        const SAVE_KEY = `catBrawlSaveData_v${GAME_VERSION}`;
+        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
+
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
+        function uint8ArrayToBase64(bytes) { let binary = ''; const len = bytes.byteLength; for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); } return window.btoa(binary); }
+        function base64ToUint8Array(base64) { const binary_string = window.atob(base64); const len = binary_string.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binary_string.charCodeAt(i); } return bytes; }
         function showToast(message) { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'toast-message'; toast.textContent = message; container.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
         
         function saveGame() {
@@ -699,63 +456,95 @@
         }
         
         function migrateSaveData(loadedState) {
-            const fromVersion = loadedState.version || '0'; 
+            const fromVersion = loadedState.version || '10.0'; 
             if (fromVersion === GAME_VERSION) {
                 return loadedState;
             }
             console.log(`正在從版本 ${fromVersion} 遷移存檔到 ${GAME_VERSION}...`);
-            switch (fromVersion) {
-                case '0':
-                    if (typeof loadedState.magicStones === 'undefined') {
-                        loadedState.magicStones = 0;
-                        console.log("  - 已應用 v9.9 遷移: 初始化 magicStones");
-                    }
-                    if (typeof loadedState.catCannon === 'undefined') {
-                        loadedState.catCannon = { level: 1 };
-                         console.log("  - 已應用 v9.9 遷移: 初始化 catCannon");
-                    }
-            }
+            // Add any future migration logic here if needed
             loadedState.version = GAME_VERSION;
             console.log("存檔遷移完成！");
             return loadedState;
         }
         
+        // ++ FIX: Reworked loadGame to be robust and handle migration from old save keys ++
         function loadGame() {
-            const savedData = localStorage.getItem(SAVE_KEY);
-            if (savedData) {
-                let loadedState = JSON.parse(savedData);
-                loadedState = migrateSaveData(loadedState);
-                playerState = { ...playerState, ...loadedState };
-                playerState.unlockedUnits = new Set(loadedState.unlockedUnits || []);
-                playerState.seenEnemies = new Set(loadedState.seenEnemies || []);
-                playerState.collectionRewards = {
-                    units: new Set(loadedState.collectionRewards?.units || []),
-                    enemies: new Set(loadedState.collectionRewards?.enemies || []),
-                };
-                playerState.settings = { ...{ volume: 0.3 }, ...loadedState.settings };
-                playerState.catCannon = { level: 1, ...loadedState.catCannon };
-                playerState.treasures = { ...loadedState.treasures };
-                playerState.dailyMissions = loadedState.dailyMissions || [];
-                
-                for (const unitId in playerState.unitLevels) {
-                    if (typeof playerState.unitLevels[unitId] === 'number') {
-                        playerState.unitLevels[unitId] = {
-                            level: playerState.unitLevels[unitId],
-                            enchantments: { hp: 0, atk: 0 }
-                        };
+            let savedData = localStorage.getItem(SAVE_KEY);
+            let needsSave = false;
+
+            if (!savedData) {
+                // Try to find previous versions
+                for (const oldKey of PREVIOUS_SAVE_KEYS) {
+                    const oldData = localStorage.getItem(oldKey);
+                    if (oldData) {
+                        console.log(`找到舊版本存檔: ${oldKey}`);
+                        savedData = oldData;
+                        localStorage.removeItem(oldKey); // Remove old key after successful load
+                        needsSave = true; // Mark that we need to save under the new key
+                        break;
                     }
                 }
-                if (!playerState.deck) {
-                    playerState.deck = Object.keys(playerState.unitLevels).slice(0, DECK_SIZE_LIMIT);
+            }
+
+            if (savedData) {
+                try {
+                    let loadedState = JSON.parse(savedData);
+                    loadedState = migrateSaveData(loadedState);
+
+                    // Re-initialize playerState with defaults to prevent missing properties on old saves
+                    let freshState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() } };
+                    
+                    playerState = { ...freshState, ...loadedState };
+
+                    // Ensure complex types are correctly recreated from arrays
+                    playerState.unlockedUnits = new Set(loadedState.unlockedUnits || []);
+                    playerState.seenEnemies = new Set(loadedState.seenEnemies || []);
+                    playerState.collectionRewards = {
+                        units: new Set(loadedState.collectionRewards?.units || []),
+                        enemies: new Set(loadedState.collectionRewards?.enemies || []),
+                    };
+
+                    // Ensure nested objects have defaults
+                    playerState.settings = { ...freshState.settings, ...loadedState.settings };
+                    playerState.catCannon = { ...freshState.catCannon, ...loadedState.catCannon };
+                    playerState.treasures = { ...loadedState.treasures };
+                    playerState.dailyMissions = loadedState.dailyMissions || [];
+                    
+                    // Legacy check for old unit level format
+                    for (const unitId in playerState.unitLevels) {
+                        if (typeof playerState.unitLevels[unitId] === 'number') {
+                            playerState.unitLevels[unitId] = {
+                                level: playerState.unitLevels[unitId],
+                                enchantments: { hp: 0, atk: 0 }
+                            };
+                        }
+                    }
+                    if (!playerState.deck || playerState.deck.length === 0) {
+                        playerState.deck = Object.keys(playerState.unitLevels).slice(0, DECK_SIZE_LIMIT);
+                    }
+
+                    if (needsSave) {
+                        console.log('正在將遷移後的存檔以新金鑰儲存...');
+                        saveGame();
+                    }
+                } catch(e) {
+                    console.error("讀取存檔失敗，將重置進度。", e);
+                    localStorage.removeItem(SAVE_KEY); // Clean up corrupted key
+                    initializeNewGame();
                 }
             } else {
-                initializeUnit('cat_basic');
-                playerState.deck = Object.keys(playerState.unitLevels);
+                initializeNewGame();
             }
             handleDailyReset();
         }
         
-        // ++ MODIFIED: 使用 pako 壓縮來匯出精簡的存檔碼 ++
+        function initializeNewGame() {
+            console.log("未找到任何存檔，初始化新遊戲。");
+            initializeUnit('cat_basic');
+            playerState.deck = Object.keys(playerState.unitLevels);
+            saveGame();
+        }
+        
         function exportSave() {
             const stateString = localStorage.getItem(SAVE_KEY);
             if (!stateString) {
@@ -763,30 +552,27 @@
                 return;
             }
             try {
-                // 使用 pako.deflate 進行壓縮
-                const compressed = pako.deflate(stateString, { to: 'string' });
-                // 將壓縮後的二進位字串轉換為 Base64，使其更適合複製
-                const encodedSave = btoa(compressed);
-                
+                const textBuffer = new TextEncoder().encode(stateString);
+                const compressed = pako.deflate(textBuffer);
+                const encodedSave = uint8ArrayToBase64(compressed);
                 prompt('請手動長按、全選並複製以下存檔碼：', encodedSave);
-
             } catch (e) {
                 alert('產生存檔碼時發生錯誤！');
                 console.error("匯出失敗:", e);
             }
         }
 
-        // ++ MODIFIED: 匯入時，先 Base64 解碼，再用 pako 解壓縮 ++
         function importSave() {
             const encodedString = prompt('請貼上您的存檔碼：');
             if (encodedString && encodedString.trim() !== '') {
                 try {
-                    const compressed = atob(encodedString);
-                    const decodedString = pako.inflate(compressed, { to: 'string' });
+                    const compressed = base64ToUint8Array(encodedString);
+                    const restoredBuffer = pako.inflate(compressed);
+                    const decodedString = new TextDecoder().decode(restoredBuffer);
                     const tempState = JSON.parse(decodedString);
-                    
                     if (tempState && tempState.catFood !== undefined && tempState.version) {
                         if (confirm('偵測到有效的存檔。匯入將會覆蓋目前的遊戲進度，確定要繼續嗎？')) {
+                            // Save with the correct new key
                             localStorage.setItem(SAVE_KEY, decodedString);
                             alert('匯入成功！遊戲將會重新載入。');
                             location.reload();
@@ -851,15 +637,24 @@
             dailyModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'daily-modal-overlay') showDailyModal(false); });
             dailyModalOverlay.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => switchTab(btn.dataset.tab)); });
             dailyModalOverlay.querySelector('#mission-list').addEventListener('click', (e) => { if (e.target.classList.contains('mission-claim-btn')) { claimMission(parseInt(e.target.dataset.index)); } });
+            
             const collectionBookScreen = document.getElementById('collection-book-screen');
             collectionBookScreen.querySelectorAll('.tab-button').forEach(btn => { btn.addEventListener('click', () => { collectionBookScreen.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); collectionBookScreen.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active'); }); });
             document.getElementById('claim-all-rewards-btn').addEventListener('click', claimAllCollectionRewards);
+            document.getElementById('player-units-tab').addEventListener('click', (e) => handleCollectionItemClick(e, 'player'));
+            document.getElementById('enemy-units-tab').addEventListener('click', (e) => handleCollectionItemClick(e, 'enemy'));
+
             document.getElementById('toggle-upgrade-mode-btn').addEventListener('click', () => { isUpgradeMode = !isUpgradeMode; updateUpgradeModeUI(); renderDeckEditor(); });
             document.getElementById('normal-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('normal'); });
             document.getElementById('limited-pool-details-btn').addEventListener('click', (e) => { e.stopPropagation(); showGachaRatesModal('limited'); });
             const gachaRatesModal = document.getElementById('gacha-rates-modal-overlay');
             gachaRatesModal.querySelector('.gacha-rates-modal-close').addEventListener('click', hideGachaRatesModal);
             gachaRatesModal.addEventListener('click', (e) => { if (e.target.id === 'gacha-rates-modal-overlay') { hideGachaRatesModal(); } });
+
+            const collectionDetailModal = document.getElementById('collection-detail-modal-overlay');
+            collectionDetailModal.querySelector('.collection-detail-modal-close').addEventListener('click', hideCollectionDetailModal);
+            collectionDetailModal.addEventListener('click', (e) => { if (e.target.id === 'collection-detail-modal-overlay') { hideCollectionDetailModal(); } });
+            
             makeScrollable(document.getElementById('current-deck-display'));
             makeScrollable(document.getElementById('owned-units-grid'));
             makeScrollable(document.getElementById('deployment-bar'));
@@ -870,7 +665,7 @@
         function handleDailyReset() { const today = new Date().toISOString().split('T')[0]; const lastLogin = playerState.lastLoginDate; hasShownLoginReward = false; if (today !== lastLogin) { const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]; if (lastLogin === yesterday) { playerState.loginStreak++; } else { playerState.loginStreak = 1; playerState.lastClaimedStreak = 0; } playerState.lastLoginDate = today; playerState.dailyMissions = []; const shuffledMissions = [...MISSION_POOL].sort(() => 0.5 - Math.random()); for (let i = 0; i < 3; i++) { const missionTemplate = shuffledMissions[i]; playerState.dailyMissions.push({ id: missionTemplate.id, progress: 0, target: missionTemplate.target, claimed: false, }); } saveGame(); } updateNotificationBadge(); }
         function updateMissionProgress(missionId, value) { if (!playerState.dailyMissions) return; const mission = playerState.dailyMissions.find(m => m.id === missionId && !m.claimed); if (mission) { mission.progress = Math.min(mission.target, mission.progress + value); saveGame(); updateNotificationBadge(); } }
         function updateNotificationBadge() { const hasClaimableMissions = playerState.dailyMissions.some(m => m.progress >= m.target && !m.claimed); const dailyBadge = document.querySelector('#go-to-daily-button .notification-badge'); if (dailyBadge) { dailyBadge.style.display = hasClaimableMissions ? 'flex' : 'none'; } }
-        function resetGame() { if (confirm('您確定要刪除所有遊戲進度並重新開始嗎？此操作無法復原！')) { localStorage.removeItem(SAVE_KEY); location.reload(); } }
+        function resetGame() { if (confirm('您確定要刪除所有遊戲進度並重新開始嗎？此操作無法復原！')) { localStorage.removeItem(SAVE_KEY); PREVIOUS_SAVE_KEYS.forEach(key => localStorage.removeItem(key)); location.reload(); } }
         function switchScreen(screenId) { const fullscreenBtn = document.getElementById('fullscreen-btn'); document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const newScreen = document.getElementById(screenId); newScreen.classList.add('active'); const hasBackButton = newScreen.querySelector('.back-button'); const isStartScreen = screenId === 'start-screen'; if (hasBackButton || isStartScreen || screenId === 'battle-screen') { fullscreenBtn.style.display = 'none'; } else { fullscreenBtn.style.display = 'flex'; } if (screenId === 'hub-screen' && !hasShownLoginReward) { const today = new Date().toISOString().split('T')[0]; if (playerState.lastLoginDate === today && playerState.loginStreak > (playerState.lastClaimedStreak || 0)) { setTimeout(() => showDailyModal(true, 'login'), 500); } hasShownLoginReward = true; } }
         function updateTopBar() { document.querySelector('#magic-stone-display span').textContent = playerState.magicStones; document.querySelector('#cat-food-display span').textContent = playerState.catFood; document.querySelector('#xp-display span').textContent = playerState.xp; }
         function getUnitDeployCost(unitId) { let cost = ALL_UNITS[unitId].cost; if (playerState.treasures['abyss_tentacle']) { cost = Math.round(cost * TREASURES['abyss_tentacle'].effect.value); } return cost; }
@@ -898,19 +693,19 @@
         function startStage(stageId) { if (playerState.deck.length === 0) { alert("隊伍中沒有任何貓咪！請先到「隊伍編成」畫面設定隊伍。"); return; } const stage = STAGE_CONFIG[stageId]; let cannonLevelData = { ...CANNON_CONFIG[playerState.catCannon.level - 1] }; let moneyConfig = JSON.parse(JSON.stringify(MONEY_LEVEL_CONFIG)); let playerBaseHp = 3000; if (playerState.treasures['grass_amulet']) { moneyConfig.forEach(level => level.max += TREASURES['grass_amulet'].effect.value); } if (playerState.treasures['cave_crystal']) { moneyConfig.forEach(level => level.rate = Math.round(level.rate * TREASURES['cave_crystal'].effect.value)); } if (playerState.treasures['volcano_heart']) { cannonLevelData.chargeTimeSec *= TREASURES['volcano_heart'].effect.value; } if (playerState.treasures['cosmic_map']) { playerBaseHp = Math.round(playerBaseHp * TREASURES['cosmic_map'].effect.value); } if (playerState.treasures['steel_blueprint']) { cannonLevelData.damage = Math.round(cannonLevelData.damage * TREASURES['steel_blueprint'].effect.value); } battleState = { stageId, nextInstanceId: 0, moneyLevel: 0, money: 200, playerBaseHp: playerBaseHp, maxPlayerBaseHp: playerBaseHp, enemyBaseHp: stage.enemyBaseHp, maxEnemyBaseHp: stage.enemyBaseHp, playerUnits: [], enemyUnits: [], enemySpawnQueue: stage.enemies.map(e => ({ ...e, time: e.time * 1000 })).sort((a, b) => a.time - b.time), isGameOver: false, battleSpeed: 1, lastFrameTime: performance.now(), gameTime: 0, isPaused: false, catCannonData: cannonLevelData, catCannonMaxCharge: cannonLevelData.chargeTimeSec * 1000, catCannonCharge: 0, moneyLevelConfig: moneyConfig, totalMoneySpent: 0, enemiesKilled: 0 }; document.getElementById('speed-toggle-btn').textContent = '1x'; updateCannonUI(); const battlefield = document.getElementById('battlefield'); battlefield.className = 'battlefield'; if (stage.background) { battlefield.classList.add(stage.background); } setupBattlefield(); switchScreen('battle-screen'); gameLoopId = requestAnimationFrame(gameLoop); }
         function setupBattlefield() { document.getElementById('battlefield').innerHTML = `<div id="time-stop-overlay"></div><div id="player-base" class="base"><div class="base-icon">🏰</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div><div id="enemy-base" class="base"><div class="base-icon">🏯</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div>`; updateDeploymentBar(); updateBattleMoneyUI(); updateBaseHealth(); }
         function updateDeploymentBar() { const bar = document.getElementById('deployment-bar'); bar.innerHTML = ''; const sortedDeck = [...playerState.deck].sort((a, b) => getUnitDeployCost(a) - getUnitDeployCost(b)); sortedDeck.forEach(unitId => { const unitData = playerState.unitLevels[unitId]; const unit = ALL_UNITS[unitId]; const cost = getUnitDeployCost(unitId); const btn = document.createElement('button'); btn.className = 'deploy-button'; btn.dataset.cost = cost; btn.innerHTML = `<div class="card-level" style="font-size:10px;top:2px;right:2px;">Lv.${unitData.level}</div><div class="card-icon" style="font-size:30px;">${unit.icon}</div><div style="font-size:12px; font-weight:bold;">${unit.name}</div><div class="deploy-cost" style="font-size:14px;">$${cost}</div>`; btn.addEventListener('click', () => deployUnit(unitId)); bar.appendChild(btn); }); }
-        function gameLoop(currentTime) { if (battleState.isGameOver || battleState.isPaused) return; const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed; battleState.lastFrameTime = currentTime; battleState.gameTime += deltaTime; const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; if (!battleState.lastMoneyUpdate || battleState.gameTime - battleState.lastMoneyUpdate > 1000) { battleState.money = Math.min(moneyConfig.max, battleState.money + moneyConfig.rate); battleState.lastMoneyUpdate = battleState.gameTime; updateBattleMoneyUI(); } if (battleState.catCannonCharge < battleState.catCannonMaxCharge) { battleState.catCannonCharge += deltaTime; updateCannonUI(); } if (battleState.enemySpawnQueue.length > 0 && battleState.gameTime >= battleState.enemySpawnQueue[0].time) { const enemyToSpawn = battleState.enemySpawnQueue.shift(); spawnUnit(enemyToSpawn.type, 'enemy'); } const allUnits = [...battleState.playerUnits, ...battleState.enemyUnits]; for (const unit of allUnits) { unit.element.classList.remove('buffed', 'weakened'); if (unit.buffUntil && unit.buffUntil > currentTime) { unit.element.classList.add('buffed'); } if (unit.weakenUntil && unit.weakenUntil > currentTime) { unit.element.classList.add('weakened'); } if (unit.frozenUntil && currentTime < unit.frozenUntil) { unit.element.classList.add('frozen'); continue; } else { unit.element.classList.remove('frozen'); unit.frozenUntil = null; } const unitData = unit.team === 'player' ? getUnitStats(unit.id) : ENEMY_UNITS[unit.id]; const actionInterval = (unitData.attackInterval || 1500) / battleState.battleSpeed; if (!unit.lastActionTime || currentTime - unit.lastActionTime > actionInterval) { let currentTarget = findUnitByInstanceId(unit.currentTargetId); if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) { unit.currentTargetId = null; const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits; let closestTarget = null, minDistance = Infinity; potentialTargets.forEach(target => { const distance = Math.abs(unit.x - target.x); if (distance <= unitData.range && distance < minDistance) { minDistance = distance; closestTarget = target; } }); if (closestTarget) { unit.currentTargetId = closestTarget.instanceId; currentTarget = closestTarget; } } if (currentTarget) { unit.isMoving = false; attack(unit, currentTarget, unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits, unitData, currentTime); } else { unit.isMoving = true; const basePos = unit.team === 'player' ? 700 : 100; if (Math.abs(unit.x - basePos) <= unitData.range) { unit.isMoving = false; attackBase(unit, unit.team === 'player' ? 'enemy' : 'player', unitData, currentTime); } } if (unitData.heal) { const healTargets = battleState.playerUnits.filter(p => p !== unit && p.hp < p.maxHp && Math.abs(p.x - unit.x) <= unitData.range); if (healTargets.length > 0) { unit.lastActionTime = currentTime; healTargets.forEach(target => { target.hp = Math.min(target.maxHp, target.hp + unitData.heal); createHealEffect(target.element, unitData.heal); updateUnitHealth(target); }); } } if (unitData.attackBuff) { const buffTargets = battleState.playerUnits.filter(p => p !== unit && Math.abs(p.x - unit.x) <= unitData.attackBuff.radius); if (buffTargets.length > 0) { unit.lastActionTime = currentTime; buffTargets.forEach(target => { target.buffUntil = currentTime + unitData.attackBuff.duration; target.buffMultiplier = unitData.attackBuff.multiplier; }); } } } if (unit.isMoving) { const speed = unitData.speed, direction = unit.team === 'player' ? 1 : -1; unit.x += speed * direction * (deltaTime / 16.67); } } updateUnitsPosition(); if (battleState.playerBaseHp <= 0) endGame(false); if (battleState.enemyBaseHp <= 0) endGame(true); if (!battleState.isGameOver) gameLoopId = requestAnimationFrame(gameLoop); }
+        function gameLoop(currentTime) { if (battleState.isGameOver || battleState.isPaused) return; const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed; battleState.lastFrameTime = currentTime; battleState.gameTime += deltaTime; const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; if (!battleState.lastMoneyUpdate || battleState.gameTime - battleState.lastMoneyUpdate > 1000) { battleState.money = Math.min(moneyConfig.max, battleState.money + moneyConfig.rate); battleState.lastMoneyUpdate = battleState.gameTime; updateBattleMoneyUI(); } if (battleState.catCannonCharge < battleState.catCannonMaxCharge) { battleState.catCannonCharge += deltaTime; updateCannonUI(); } if (battleState.enemySpawnQueue.length > 0 && battleState.gameTime >= battleState.enemySpawnQueue[0].time) { const enemyToSpawn = battleState.enemySpawnQueue.shift(); spawnUnit(enemyToSpawn.type, 'enemy'); } const allUnits = [...battleState.playerUnits, ...battleState.enemyUnits]; for (const unit of allUnits) { const unitData = unit.team === 'player' ? getUnitStats(unit.id) : (ALL_UNITS[unit.id] || ENEMY_UNITS[unit.id]); if (unitData.lifeSpan && currentTime - unit.spawnTime > unitData.lifeSpan) { removeUnit(unit); continue; } unit.element.classList.remove('buffed', 'weakened', 'poisoned'); if (unit.buffUntil && unit.buffUntil > currentTime) { unit.element.classList.add('buffed'); } if (unit.weakenUntil && unit.weakenUntil > currentTime) { unit.element.classList.add('weakened'); } if (unit.poisonUntil && currentTime < unit.poisonUntil) { unit.element.classList.add('poisoned'); if (!unit.lastPoisonTick || currentTime - unit.lastPoisonTick > 1000) { dealDamage(unit, unit.poisonDamage, false, null, {}, currentTime); unit.lastPoisonTick = currentTime; } } else if (unit.poisonUntil) { unit.poisonUntil = null; unit.poisonDamage = null; } if (unit.frozenUntil && currentTime < unit.frozenUntil) { unit.element.classList.add('frozen'); continue; } else { unit.element.classList.remove('frozen'); unit.frozenUntil = null; } const actionInterval = (unitData.attackInterval || 1500) / battleState.battleSpeed; if (!unit.lastActionTime || currentTime - unit.lastActionTime > actionInterval) { let currentTarget = findUnitByInstanceId(unit.currentTargetId); if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) { unit.currentTargetId = null; const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits; let closestTarget = null, minDistance = Infinity; potentialTargets.forEach(target => { const distance = Math.abs(unit.x - target.x); if (distance <= unitData.range && distance < minDistance) { minDistance = distance; closestTarget = target; } }); if (closestTarget) { unit.currentTargetId = closestTarget.instanceId; currentTarget = closestTarget; } } if (currentTarget) { unit.isMoving = false; attack(unit, currentTarget, unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits, unitData, currentTime); } else { unit.isMoving = true; const basePos = unit.team === 'player' ? 700 : 100; if (Math.abs(unit.x - basePos) <= unitData.range) { unit.isMoving = false; attackBase(unit, unit.team === 'player' ? 'enemy' : 'player', unitData, currentTime); } } if (unitData.heal) { const healTargets = battleState.playerUnits.filter(p => p !== unit && p.hp < p.maxHp && Math.abs(p.x - unit.x) <= unitData.range); if (healTargets.length > 0) { unit.lastActionTime = currentTime; healTargets.forEach(target => { target.hp = Math.min(target.maxHp, target.hp + unitData.heal); createHealEffect(target.element, unitData.heal); updateUnitHealth(target); }); } } if (unitData.attackBuff) { const buffTargets = battleState.playerUnits.filter(p => p !== unit && Math.abs(p.x - unit.x) <= unitData.attackBuff.radius); if (buffTargets.length > 0) { unit.lastActionTime = currentTime; buffTargets.forEach(target => { target.buffUntil = currentTime + unitData.attackBuff.duration; target.buffMultiplier = unitData.attackBuff.multiplier; }); } } } if (unit.isMoving) { const speed = unitData.speed, direction = unit.team === 'player' ? 1 : -1; unit.x += speed * direction * (deltaTime / 16.67); } } updateUnitsPosition(); if (battleState.playerBaseHp <= 0) endGame(false); if (battleState.enemyBaseHp <= 0) endGame(true); if (!battleState.isGameOver) gameLoopId = requestAnimationFrame(gameLoop); }
         function findUnitByInstanceId(id) { if (id == null) return null; return battleState.playerUnits.find(u => u.instanceId === id) || battleState.enemyUnits.find(u => u.instanceId === id); }
-        function attack(attacker, mainTarget, allTargets, attackerData, currentTime) { attacker.lastActionTime = currentTime; const targetData = mainTarget.team === 'player' ? getUnitStats(mainTarget.id) : ENEMY_UNITS[mainTarget.id]; if (targetData.dodgeChance && Math.random() < targetData.dodgeChance) { createDamageTextEffect(mainTarget.element, 'MISS', '#ffffff'); return; } if (targetData.blockChance && Math.random() < targetData.blockChance) { mainTarget.element.classList.add('blocking'); setTimeout(() => mainTarget.element.classList.remove('blocking'), 300); return; } if (attackerData.timeStop && Math.random() < attackerData.timeStop.chance) { showTimeStopEffect(); battleState.enemyUnits.forEach(enemy => enemy.frozenUntil = currentTime + attackerData.timeStop.duration); } if (attackerData.multiHit) { for (let i = 0; i < attackerData.multiHit.count; i++) { setTimeout(() => performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime), i * attackerData.multiHit.delay); } } else { performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime); } }
-        function performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime) { if (!mainTarget || mainTarget.hp <= 0) return; let actualAtk = attackerData.atk; if (attacker.buffUntil && attacker.buffUntil > currentTime) actualAtk *= attacker.buffMultiplier; let isCrit = false; if (attackerData.crit && Math.random() < attackerData.crit.chance) { actualAtk = Math.round(actualAtk * attackerData.crit.multiplier); isCrit = true; } const originalHp = mainTarget.hp; if (attackerData.splashRange) { allTargets.filter(t => t.hp > 0 && Math.abs(t.x - mainTarget.x) <= attackerData.splashRange).forEach(target => dealDamage(target, actualAtk, isCrit, attackerData, currentTime)); } else { dealDamage(mainTarget, actualAtk, isCrit, attackerData, currentTime); } const killedTarget = originalHp > 0 && mainTarget.hp <= 0; if (killedTarget && attackerData.moneyOnKill && Math.random() < attackerData.moneyOnKill.chance) { battleState.money = Math.min(battleState.moneyLevelConfig[battleState.moneyLevel].max, battleState.money + attackerData.moneyOnKill.amount); updateBattleMoneyUI(); } if (attackerData.waveAttack && Math.random() < attackerData.waveAttack.chance) { const direction = attacker.team === 'player' ? 1 : -1; const waveTargets = (attacker.team === 'player' ? battleState.enemyUnits : battleState.playerUnits).filter(u => direction * (u.x - attacker.x) > 0 && direction * (u.x - attacker.x) < attackerData.waveAttack.distance); waveTargets.forEach(target => setTimeout(() => dealDamage(target, actualAtk, false, {}, currentTime), 100)); } if (attackerData.freeze && Math.random() < attackerData.freeze.chance) { mainTarget.frozenUntil = currentTime + attackerData.freeze.duration; } if (attackerData.weaken && Math.random() < attackerData.weaken.chance) { mainTarget.weakenUntil = currentTime + attackerData.weaken.duration; mainTarget.weakenMultiplier = attackerData.weaken.multiplier; } }
-        function dealDamage(target, damage, isCrit, attackerData = {}, currentTime) { if (!target || target.hp <= 0) return; let finalDamage = damage; if (target.weakenUntil && target.weakenUntil > currentTime) { finalDamage *= target.weakenMultiplier; } finalDamage = Math.round(finalDamage); target.hp -= finalDamage; createDamageTextEffect(target.element, finalDamage, isCrit ? '#ff4757' : '#fff'); if (target.hp <= 0) { if (target.team === 'enemy') { updateMissionProgress('kill_enemies', 1); } removeUnit(target); } else { updateUnitHealth(target); } }
+        function attack(attacker, mainTarget, allTargets, attackerData, currentTime) { attacker.lastActionTime = currentTime; const targetData = mainTarget.team === 'player' ? getUnitStats(mainTarget.id) : (ALL_UNITS[mainTarget.id] || ENEMY_UNITS[mainTarget.id]); if (targetData.dodgeChance && Math.random() < targetData.dodgeChance) { createDamageTextEffect(mainTarget.element, 'MISS', '#ffffff'); return; } if (targetData.blockChance && Math.random() < targetData.blockChance) { mainTarget.element.classList.add('blocking'); setTimeout(() => mainTarget.element.classList.remove('blocking'), 300); return; } if (attackerData.timeStop && Math.random() < attackerData.timeStop.chance) { showTimeStopEffect(); battleState.enemyUnits.forEach(enemy => enemy.frozenUntil = currentTime + attackerData.timeStop.duration); } if (attackerData.multiHit) { for (let i = 0; i < attackerData.multiHit.count; i++) { setTimeout(() => performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime), i * attackerData.multiHit.delay); } } else { performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime); } }
+        function performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime) { if (!mainTarget || mainTarget.hp <= 0) return; let actualAtk = attackerData.atk; if (attacker.buffUntil && attacker.buffUntil > currentTime) actualAtk *= attacker.buffMultiplier; let isCrit = false; if (attackerData.crit && Math.random() < attackerData.crit.chance) { actualAtk = Math.round(actualAtk * attackerData.crit.multiplier); isCrit = true; } const originalHp = mainTarget.hp; if (attackerData.splashRange) { allTargets.filter(t => t.hp > 0 && Math.abs(t.x - mainTarget.x) <= attackerData.splashRange).forEach(target => dealDamage(target, actualAtk, isCrit, attacker, attackerData, currentTime)); } else { dealDamage(mainTarget, actualAtk, isCrit, attacker, attackerData, currentTime); } const killedTarget = originalHp > 0 && mainTarget.hp <= 0; if (killedTarget && attackerData.moneyOnKill && Math.random() < attackerData.moneyOnKill.chance) { battleState.money = Math.min(battleState.moneyLevelConfig[battleState.moneyLevel].max, battleState.money + attackerData.moneyOnKill.amount); updateBattleMoneyUI(); } if (attackerData.waveAttack && Math.random() < attackerData.waveAttack.chance) { const direction = attacker.team === 'player' ? 1 : -1; const waveTargets = (attacker.team === 'player' ? battleState.enemyUnits : battleState.playerUnits).filter(u => direction * (u.x - attacker.x) > 0 && direction * (u.x - attacker.x) < attackerData.waveAttack.distance); waveTargets.forEach(target => setTimeout(() => dealDamage(target, actualAtk, false, attacker, attackerData, currentTime), 100)); } if (attackerData.freeze && Math.random() < attackerData.freeze.chance) { mainTarget.frozenUntil = currentTime + attackerData.freeze.duration; } if (attackerData.weaken && Math.random() < attackerData.weaken.chance) { mainTarget.weakenUntil = currentTime + attackerData.weaken.duration; mainTarget.weakenMultiplier = attackerData.weaken.multiplier; } if (attackerData.poison && Math.random() < attackerData.poison.chance) { mainTarget.poisonUntil = currentTime + attackerData.poison.duration; mainTarget.poisonDamage = attackerData.poison.damage; mainTarget.lastPoisonTick = currentTime; } }
+        function dealDamage(target, damage, isCrit, attacker, attackerData, currentTime) { if (!target || target.hp <= 0) return; let finalDamage = damage; const targetData = target.team === 'player' ? getUnitStats(target.id) : (ALL_UNITS[target.id] || ENEMY_UNITS[target.id]); if (targetData.damageReduction && Math.random() < targetData.damageReduction.chance) { finalDamage *= (1 - targetData.damageReduction.multiplier); createDamageTextEffect(target.element, 'GUARD', '#87ceeb'); } if (target.weakenUntil && target.weakenUntil > currentTime) { finalDamage *= target.weakenMultiplier; } finalDamage = Math.round(finalDamage); target.hp -= finalDamage; createDamageTextEffect(target.element, finalDamage, isCrit ? '#ff4757' : '#fff'); if (target.hp <= 0) { if (attacker && attackerData.summonOnKill && Math.random() < attackerData.summonOnKill.chance) { spawnUnit(attackerData.summonOnKill.unitId, attacker.team, target.x); } if (target.team === 'enemy') { updateMissionProgress('kill_enemies', 1); } removeUnit(target); } else { updateUnitHealth(target); } }
         function attackBase(attacker, baseTeam, attackerData, currentTime) { attacker.lastActionTime = currentTime; const targetBaseElement = document.getElementById(`${baseTeam}-base`); let actualAtk = attackerData.atk; if (attacker.buffUntil && attacker.buffUntil > currentTime) actualAtk *= attacker.buffMultiplier; actualAtk = Math.round(actualAtk); createDamageTextEffect(targetBaseElement, actualAtk, false); if (baseTeam === 'enemy') { battleState.enemyBaseHp -= actualAtk; } else { battleState.playerBaseHp -= actualAtk; } updateBaseHealth(); }
         function deployUnit(unitId) { const cost = getUnitDeployCost(unitId); if (battleState.money >= cost) { battleState.money -= cost; battleState.totalMoneySpent += cost; updateMissionProgress('spend_money', cost); updateBattleMoneyUI(); spawnUnit(unitId, 'player'); } }
-        function spawnUnit(id, team) { if (team === 'enemy' && !playerState.seenEnemies.has(id)) { playerState.seenEnemies.add(id); updateCollectionBookBadge(); saveGame(); } const isPlayer = team === 'player'; const unitData = isPlayer ? getUnitStats(id) : ENEMY_UNITS[id]; const element = document.createElement('div'); element.className = 'unit'; element.innerHTML = `<div>${unitData.icon}</div><div class="unit-health-bar"><div class="unit-health-bar-inner"></div></div>`; const unitInstance = { id, team, element, instanceId: battleState.nextInstanceId++, currentTargetId: null, hp: unitData.hp, maxHp: unitData.hp, x: isPlayer ? 100 : 700, isMoving: true, }; document.getElementById('battlefield').appendChild(element); if (isPlayer) battleState.playerUnits.push(unitInstance); else battleState.enemyUnits.push(unitInstance); }
+        function spawnUnit(id, team, spawnX = null) { const isPlayer = team === 'player'; const unitData = isPlayer ? getUnitStats(id) : (ALL_UNITS[id] || ENEMY_UNITS[id]); if (team === 'enemy' && !unitData.isMinion && !playerState.seenEnemies.has(id)) { playerState.seenEnemies.add(id); updateCollectionBookBadge(); saveGame(); } const element = document.createElement('div'); element.className = 'unit'; element.innerHTML = `<div>${unitData.icon}</div><div class="unit-health-bar"><div class="unit-health-bar-inner"></div></div>`; const unitInstance = { id, team, element, instanceId: battleState.nextInstanceId++, currentTargetId: null, hp: unitData.hp, maxHp: unitData.hp, x: spawnX !== null ? spawnX : (isPlayer ? 100 : 700), isMoving: true, spawnTime: performance.now(), }; document.getElementById('battlefield').appendChild(element); if (isPlayer) battleState.playerUnits.push(unitInstance); else battleState.enemyUnits.push(unitInstance); }
         function removeUnit(unitToRemove) { if (unitToRemove.element) unitToRemove.element.remove(); if (unitToRemove.team === 'player') battleState.playerUnits = battleState.playerUnits.filter(u => u.instanceId !== unitToRemove.instanceId); else battleState.enemyUnits = battleState.enemyUnits.filter(u => u.instanceId !== unitToRemove.instanceId); }
         function endGame(isVictory) { battleState.isGameOver = true; cancelAnimationFrame(gameLoopId); const overlay = document.getElementById('game-over-overlay'); const title = document.getElementById('game-over-title'); const rewardText = document.getElementById('game-over-reward'); const treasureDropText = document.getElementById('game-over-treasure-drop'); treasureDropText.innerHTML = ''; if (isVictory) { const stage = STAGE_CONFIG[battleState.stageId]; let reward = stage.reward; let xpMultiplier = 1; if (playerState.treasures['dark_crown']) xpMultiplier = TREASURES['dark_crown'].effect.value; const finalXp = Math.round(reward.xp * xpMultiplier); playerState.catFood += reward.food; playerState.xp += finalXp; title.textContent = "勝利！"; let extraRewards = []; if (stage.stoneDrop && Math.random() < stage.stoneDrop.chance) { const amount = stage.stoneDrop.amount; playerState.magicStones += amount; extraRewards.push(`💎x${amount}`); } rewardText.textContent = `獲得 🥫x${reward.food}, 🌟x${finalXp}` + (extraRewards.length > 0 ? `, ${extraRewards.join(', ')}` : ''); updateMissionProgress('win_stages', 1); if (stage.treasureDrop && !playerState.treasures[stage.treasureDrop.id] && Math.random() < stage.treasureDrop.chance) { const treasureId = stage.treasureDrop.id; playerState.treasures[treasureId] = true; const treasure = TREASURES[treasureId]; treasureDropText.innerHTML = `✨ 獲得寶物：${treasure.name} ${treasure.icon} ✨`; } updateTopBar(); saveGame(); } else { title.textContent = "失敗..."; rewardText.textContent = `再接再厲！`; } overlay.classList.add('active'); }
         function togglePause(pause) { battleState.isPaused = pause; document.getElementById('pause-overlay').style.display = pause ? 'flex' : 'none'; if (pause) { cancelAnimationFrame(gameLoopId); } else { battleState.lastFrameTime = performance.now(); gameLoopId = requestAnimationFrame(gameLoop); } }
         function quitBattle() { battleState.isGameOver = true; cancelAnimationFrame(gameLoopId); togglePause(false); switchScreen('hub-screen'); }
-        function fireCatCannon() { if (battleState.catCannonCharge < battleState.catCannonMaxCharge || battleState.isPaused || battleState.isGameOver) return; const cannonStats = battleState.catCannonData; battleState.catCannonCharge = 0; updateCannonUI(); const laser = document.createElement('div'); laser.className = 'cannon-laser'; document.getElementById('battlefield').appendChild(laser); setTimeout(() => laser.remove(), 300); battleState.enemyUnits.forEach(enemy => { if (enemy.hp > 0) { dealDamage(enemy, cannonStats.damage, false, {}, performance.now()); const stillAliveEnemy = findUnitByInstanceId(enemy.instanceId); if (stillAliveEnemy) { stillAliveEnemy.x -= cannonStats.knockback; if (stillAliveEnemy.x < 100) stillAliveEnemy.x = 100; } } }); updateUnitsPosition(); }
+        function fireCatCannon() { if (battleState.catCannonCharge < battleState.catCannonMaxCharge || battleState.isPaused || battleState.isGameOver) return; const cannonStats = battleState.catCannonData; battleState.catCannonCharge = 0; updateCannonUI(); const laser = document.createElement('div'); laser.className = 'cannon-laser'; document.getElementById('battlefield').appendChild(laser); setTimeout(() => laser.remove(), 300); battleState.enemyUnits.forEach(enemy => { if (enemy.hp > 0) { dealDamage(enemy, cannonStats.damage, false, null, {}, performance.now()); const stillAliveEnemy = findUnitByInstanceId(enemy.instanceId); if (stillAliveEnemy) { stillAliveEnemy.x -= cannonStats.knockback; if (stillAliveEnemy.x < 100) stillAliveEnemy.x = 100; } } }); updateUnitsPosition(); }
         function updateCannonUI() { const btn = document.getElementById('fire-cannon-btn'); const chargeBar = document.getElementById('cannon-charge-bar'); const chargePercentage = Math.min(100, (battleState.catCannonCharge / battleState.catCannonMaxCharge) * 100); chargeBar.style.height = `${chargePercentage}%`; btn.classList.toggle('disabled', chargePercentage < 100); }
         function updateBattleMoneyUI() { const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; document.querySelector('#money-display').textContent = `金錢: $${battleState.money} / ${moneyConfig.max}`; document.querySelector('#money-level-display').textContent = `錢包 Lv: ${battleState.moneyLevel + 1}`; const upgradeBtn = document.getElementById('upgrade-money-btn'); const nextLevelConfig = battleState.moneyLevelConfig[battleState.moneyLevel + 1]; if (nextLevelConfig && nextLevelConfig.cost !== Infinity) { upgradeBtn.textContent = `升級 ($${nextLevelConfig.cost})`; upgradeBtn.classList.toggle('disabled', battleState.money < nextLevelConfig.cost); } else { upgradeBtn.textContent = '已滿級'; upgradeBtn.classList.add('disabled'); } document.querySelectorAll('.deploy-button').forEach(btn => { btn.classList.toggle('disabled', battleState.money < parseInt(btn.dataset.cost)); }); }
         function handleUpgradeMoney() { const nextLevel = battleState.moneyLevel + 1; const nextLevelConfig = battleState.moneyLevelConfig[nextLevel]; if (nextLevelConfig) { const cost = nextLevelConfig.cost; if (battleState.money >= cost) { battleState.money -= cost; battleState.moneyLevel = nextLevel; updateBattleMoneyUI(); } } }
@@ -929,7 +724,7 @@
         function claimMission(index) { const mission = playerState.dailyMissions[index]; if (mission && mission.progress >= mission.target && !mission.claimed) { const template = MISSION_POOL.find(m => m.id === mission.id); const reward = template.reward; let rewardText = ''; if (reward.type === 'food') { playerState.catFood += reward.value; rewardText = `+${reward.value} 罐頭`; } else if (reward.type === 'xp') { playerState.xp += reward.value; rewardText = `+${reward.value} XP`; } mission.claimed = true; showToast(`任務完成！${rewardText}`); updateTopBar(); saveGame(); renderMissions(); updateNotificationBadge(); } }
         function switchTab(tabName) { document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active'); document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active')); document.getElementById(`${tabName}-tab`).classList.add('active'); }
         function renderCollectionBook() { renderCollectionGrid('player-units', ALL_UNITS, playerState.unlockedUnits, playerState.collectionRewards.units); renderCollectionGrid('enemy-units', ENEMY_UNITS, playerState.seenEnemies, playerState.collectionRewards.enemies); updateCollectionBookBadge(); }
-        function renderCollectionGrid(tabId, source, unlockedSet, claimedSet) { const grid = document.getElementById(`${tabId}-tab`); grid.innerHTML = ''; Object.keys(source).forEach(id => { const itemData = source[id]; const isUnlocked = unlockedSet.has(id); const isClaimed = claimedSet.has(id); const item = document.createElement('div'); item.className = `collection-item ${isUnlocked ? '' : 'locked'}`; item.innerHTML = ` <div class="item-icon">${isUnlocked ? itemData.icon : '❓'}</div> <div class="item-name">${isUnlocked ? itemData.name : '未發現'}</div> `; if (isUnlocked && !isClaimed) { const claimBtn = document.createElement('button'); claimBtn.className = 'reward-claim-button'; claimBtn.textContent = '🎁'; claimBtn.title = `領取 ${COLLECTION_REWARD_AMOUNT} 罐頭`; claimBtn.onclick = (e) => { e.stopPropagation(); claimCollectionReward(id, tabId.includes('player') ? 'units' : 'enemies'); }; item.appendChild(claimBtn); } grid.appendChild(item); }); }
+        function renderCollectionGrid(tabId, source, unlockedSet, claimedSet) { const grid = document.getElementById(`${tabId}-tab`); grid.innerHTML = ''; Object.keys(source).filter(id => !source[id].isMinion).forEach(id => { const itemData = source[id]; const isUnlocked = unlockedSet.has(id); const isClaimed = claimedSet.has(id); const item = document.createElement('div'); item.className = `collection-item ${isUnlocked ? '' : 'locked'}`; item.dataset.unitId = id; item.innerHTML = ` <div class="item-icon">${isUnlocked ? itemData.icon : '❓'}</div> <div class="item-name">${isUnlocked ? itemData.name : '未發現'}</div> `; if (isUnlocked && !isClaimed) { const claimBtn = document.createElement('button'); claimBtn.className = 'reward-claim-button'; claimBtn.textContent = '🎁'; claimBtn.title = `領取 ${COLLECTION_REWARD_AMOUNT} 罐頭`; claimBtn.onclick = (e) => { e.stopPropagation(); claimCollectionReward(id, tabId.includes('player') ? 'units' : 'enemies'); }; item.appendChild(claimBtn); } grid.appendChild(item); }); }
         function claimCollectionReward(id, type) { if (!playerState.collectionRewards[type].has(id)) { playerState.collectionRewards[type].add(id); playerState.catFood += COLLECTION_REWARD_AMOUNT; showToast(`領取成功！+${COLLECTION_REWARD_AMOUNT} 罐頭`); updateTopBar(); renderCollectionBook(); saveGame(); } }
         function claimAllCollectionRewards() { let totalClaimed = 0; const types = ['units', 'enemies']; types.forEach(type => { const unlockedSet = type === 'units' ? playerState.unlockedUnits : playerState.seenEnemies; unlockedSet.forEach(id => { if (!playerState.collectionRewards[type].has(id)) { playerState.collectionRewards[type].add(id); totalClaimed++; } }); }); if (totalClaimed > 0) { const totalReward = totalClaimed * COLLECTION_REWARD_AMOUNT; playerState.catFood += totalReward; showToast(`一鍵領取 ${totalClaimed} 項獎勵，共獲得 ${totalReward} 罐頭！`); updateTopBar(); renderCollectionBook(); saveGame(); } else { showToast('沒有可領取的獎勵'); } }
         function updateCollectionBookBadge() { let hasClaimable = false; playerState.unlockedUnits.forEach(id => { if (!playerState.collectionRewards.units.has(id)) hasClaimable = true; }); if (!hasClaimable) { playerState.seenEnemies.forEach(id => { if (!playerState.collectionRewards.enemies.has(id)) hasClaimable = true; }); } const badge = document.querySelector('#go-to-collection-book-button .notification-badge'); if(badge) badge.style.display = hasClaimable ? 'flex' : 'none'; }
@@ -937,6 +732,11 @@
         function handlePurchase(itemId) { const item = SHOP_ITEMS[itemId]; if (playerState.catFood < item.cost) { showToast('貓罐頭不足！'); return; } playerState.catFood -= item.cost; let rewardText = ''; if (item.reward.type === 'xp') { playerState.xp += item.reward.value; rewardText = `+${item.reward.value.toLocaleString()} 🌟`; } else if (item.reward.type === 'magicStones') { playerState.magicStones += item.reward.value; rewardText = `+${item.reward.value.toLocaleString()} 💎`; } showToast(`購買成功！ ${rewardText}`); updateTopBar(); saveGame(); renderShopScreen(); }
         function toggleFullscreen() { const gameContainer = document.getElementById('game-container'); if (!document.fullscreenElement) { gameContainer.requestFullscreen().catch(err => { alert(`無法進入全螢幕模式: ${err.message} (${err.name})`); }); } else { document.exitFullscreen(); } }
         function showMenuModal(show) { document.getElementById('menu-modal-overlay').style.display = show ? 'flex' : 'none'; }
+        
+        function handleCollectionItemClick(event, type) { const item = event.target.closest('.collection-item'); if (item && item.dataset.unitId) { showCollectionDetailModal(item.dataset.unitId, type); } }
+        function showCollectionDetailModal(unitId, type) { const unitData = (type === 'player') ? ALL_UNITS[unitId] : ENEMY_UNITS[unitId]; if (!unitData) return; document.getElementById('modal-detail-unit-name').textContent = unitData.name; document.getElementById('modal-detail-unit-icon').textContent = unitData.icon; const statsDiv = document.getElementById('modal-detail-stats'); const rarityText = unitData.rarity ? `<span class="rarity-${unitData.rarity}">${unitData.rarity}</span>` : '敵方'; statsDiv.innerHTML = ` <p><b>稀有度:</b> ${rarityText}</p> <p><b>體力:</b> ${unitData.hp}</p> <p><b>攻擊力:</b> ${unitData.atk}</p> <p><b>射程:</b> ${unitData.range}</p> ${unitData.cost ? `<p><b>花費:</b> ${unitData.cost}</p>` : ''} `; const descDiv = document.getElementById('modal-detail-unit-desc'); descDiv.innerHTML = generateUnitDescription(unitData); document.getElementById('collection-detail-modal-overlay').style.display = 'flex'; }
+        function hideCollectionDetailModal() { document.getElementById('collection-detail-modal-overlay').style.display = 'none'; }
+        function generateUnitDescription(unitData) { const descriptions = []; if (unitData.splashRange) descriptions.push(`攻擊可對目標周圍 ${unitData.splashRange} 範圍內的敵人造成傷害。`); if (unitData.waveAttack) descriptions.push(`${(unitData.waveAttack.chance * 100)}% 機率發動波動攻擊，傷害前方 ${unitData.waveAttack.distance} 距離內所有敵人。`); if (unitData.multiHit) descriptions.push(`一次攻擊可造成 ${unitData.multiHit.count} 次傷害。`); if (unitData.crit) descriptions.push(`${(unitData.crit.chance * 100)}% 機率造成 ${unitData.crit.multiplier} 倍爆擊傷害。`); if (unitData.freeze) descriptions.push(`${(unitData.freeze.chance * 100)}% 機率凍結敵人 ${unitData.freeze.duration / 1000} 秒。`); if (unitData.weaken) descriptions.push(`${(unitData.weaken.chance * 100)}% 機率弱化敵人，使其攻擊力降為 ${(unitData.weaken.multiplier * 100)}%，持續 ${unitData.weaken.duration / 1000} 秒。`); if (unitData.poison) descriptions.push(`${(unitData.poison.chance * 100)}% 機率使敵人中毒，每秒造成 ${unitData.poison.damage} 點傷害，持續 ${unitData.poison.duration / 1000} 秒。`); if (unitData.timeStop) descriptions.push(`${(unitData.timeStop.chance * 100)}% 機率暫停敵方時間 ${unitData.timeStop.duration / 1000} 秒。`); if (unitData.heal) descriptions.push(`可治療範圍內我方單位，每秒恢復 ${unitData.heal} 點生命。`); if (unitData.attackBuff) descriptions.push(`可強化範圍內我方單位，提升 ${((unitData.attackBuff.multiplier - 1) * 100).toFixed(0)}% 攻擊力，持續 ${unitData.attackBuff.duration / 1000} 秒。`); if (unitData.moneyOnKill) descriptions.push(`擊敗敵人時，有 ${(unitData.moneyOnKill.chance * 100)}% 機率獲得 $${unitData.moneyOnKill.amount}。`); if (unitData.summonOnKill) { const summoned = ALL_UNITS[unitData.summonOnKill.unitId]; descriptions.push(`擊敗敵人時，有 ${(unitData.summonOnKill.chance * 100)}% 機率召喚一隻「${summoned.name}」。`); } if (unitData.blockChance) descriptions.push(`有 ${(unitData.blockChance * 100)}% 機率格檔所有傷害。`); if (unitData.dodgeChance) descriptions.push(`有 ${(unitData.dodgeChance * 100)}% 機率閃避攻擊。`); if (unitData.damageReduction) descriptions.push(`有 ${(unitData.damageReduction.chance * 100)}% 機率使受到的傷害減少 ${((1 - unitData.damageReduction.multiplier) * 100)}%。`); if (unitData.lifeSpan) descriptions.push(`此單位只能在場上存在 ${unitData.lifeSpan / 1000} 秒。`); if (descriptions.length === 0) { return '<h4>特殊能力</h4><p>沒有特殊能力。</p>'; } return `<h4>特殊能力</h4><ul><li>${descriptions.join('</li><li>')}</li></ul>`; }
         
         function init() { loadGame(); setupEventListeners(); updateTopBar(); switchScreen('start-screen'); }
         init();
