@@ -2,8 +2,16 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貓咪大亂鬥 V10.5 - 勝利加速優化</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>貓咪大亂鬥 V10.6 - iOS 優化</title>
+    
+    <!-- ++ NEW: Meta tags for iOS Web-App experience ++ -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="貓咪大亂鬥">
+    <!-- 建議您創建一個 180x180 px 的 PNG 圖片作為圖示 -->
+    <link rel="apple-touch-icon" href="https://i.imgur.com/gA3e2Am.png"> 
+    
     <!-- 引入 pako 壓縮函式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
@@ -28,6 +36,14 @@
         @keyframes blink-anim { 50% { opacity: 0.3; } }
         @keyframes freeze-in-anim { from { transform: translate(-50%, -50%) scale(0.5) rotate(-90deg); opacity: 0; } to { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.8; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #ios-guide-overlay .modal-content { width: 400px; text-align: left; }
+        #ios-guide-overlay h3 { margin-top: 0; text-align: center; }
+        #ios-guide-overlay p { line-height: 1.6; font-size: 16px; }
+        #ios-guide-overlay .share-icon { display: inline-block; width: 20px; height: 20px; background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>'); background-size: contain; background-repeat: no-repeat; vertical-align: middle; margin: 0 4px; }
+        #ios-guide-overlay .add-icon { display: inline-block; width: 20px; height: 20px; background-color: #f0f0f0; border-radius: 4px; color: #007aff; font-weight: bold; text-align: center; line-height: 20px; font-size: 18px; vertical-align: middle; margin: 0 4px; }
+        .close-guide-btn { width: 100%; margin-top: 20px; }
+
         .back-button { position: absolute; top: 20px; left: 20px; font-size: 16px; padding: 8px 15px; cursor: pointer; background: #6c7a89; color: white; border-radius: 8px; border: none; border-bottom: 3px solid #4d5a68; z-index: 101; transition: all 0.1s ease-in-out; }
         .back-button:hover { background: #8d99ae; }
         .back-button:active { transform: translateY(2px); border-bottom-width: 1px; }
@@ -399,6 +415,15 @@
                 <div id="modal-detail-unit-desc"></div>
             </div>
         </div>
+        <div id="ios-guide-overlay" class="modal-overlay">
+            <div id="ios-guide-overlay-content" class="modal-content">
+                <h3>享受全螢幕體驗！</h3>
+                <p>為了獲得最佳遊戲效果，建議您將此頁面新增到主畫面：</p>
+                <p>1. 點擊瀏覽器底部的「分享」按鈕 <span class="share-icon"></span>。</p>
+                <p>2. 在選單中向下滑動，找到並點擊「加入主畫面」<span class="add-icon">+</span>。</p>
+                <button class="hub-button close-guide-btn">我知道了</button>
+            </div>
+        </div>
         <div id="toast-container"></div>
     </div>
 <script>
@@ -426,9 +451,9 @@
         let hasShownLoginReward = false;
         let isUpgradeMode = false;
 
-        const GAME_VERSION = '10.5';
+        const GAME_VERSION = '10.6';
         const SAVE_KEY = `catBrawlSaveData_v${GAME_VERSION}`;
-        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.4', 'catBrawlSaveData_v10.3', 'catBrawlSaveData_v10.2', 'catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
+        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.5', 'catBrawlSaveData_v10.4', 'catBrawlSaveData_v10.3', 'catBrawlSaveData_v10.2', 'catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
         function uint8ArrayToBase64(bytes) { let binary = ''; const len = bytes.byteLength; for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); } return window.btoa(binary); }
@@ -636,6 +661,13 @@
             const collectionDetailModal = document.getElementById('collection-detail-modal-overlay');
             collectionDetailModal.querySelector('.collection-detail-modal-close').addEventListener('click', hideCollectionDetailModal);
             collectionDetailModal.addEventListener('click', (e) => { if (e.target.id === 'collection-detail-modal-overlay') { hideCollectionDetailModal(); } });
+            const iosGuideOverlay = document.getElementById('ios-guide-overlay');
+            if (iosGuideOverlay) {
+                iosGuideOverlay.querySelector('.close-guide-btn').addEventListener('click', () => {
+                    iosGuideOverlay.style.display = 'none';
+                    localStorage.setItem('hasSeenIosGuide', 'true');
+                });
+            }
             makeScrollable(document.getElementById('current-deck-display'));
             makeScrollable(document.getElementById('owned-units-grid'));
             makeScrollable(document.getElementById('deployment-bar'));
@@ -893,7 +925,23 @@
         function hideCollectionDetailModal() { document.getElementById('collection-detail-modal-overlay').style.display = 'none'; }
         function generateUnitDescription(unitData) { const descriptions = []; if (unitData.splashRange) descriptions.push(`攻擊可對目標周圍 ${unitData.splashRange} 範圍內的敵人造成傷害。`); if (unitData.waveAttack) descriptions.push(`${(unitData.waveAttack.chance * 100)}% 機率發動波動攻擊，傷害前方 ${unitData.waveAttack.distance} 距離內所有敵人。`); if (unitData.multiHit) descriptions.push(`一次攻擊可造成 ${unitData.multiHit.count} 次傷害。`); if (unitData.crit) descriptions.push(`${(unitData.crit.chance * 100)}% 機率造成 ${unitData.crit.multiplier} 倍爆擊傷害。`); if (unitData.freeze) descriptions.push(`${(unitData.freeze.chance * 100)}% 機率凍結敵人 ${unitData.freeze.duration / 1000} 秒。`); if (unitData.weaken) descriptions.push(`${(unitData.weaken.chance * 100)}% 機率弱化敵人，使其攻擊力降為 ${(unitData.weaken.multiplier * 100)}%，持續 ${unitData.weaken.duration / 1000} 秒。`); if (unitData.poison) descriptions.push(`${(unitData.poison.chance * 100)}% 機率使敵人中毒，每秒造成 ${unitData.poison.damage} 點傷害，持續 ${unitData.poison.duration / 1000} 秒。`); if (unitData.timeStop) descriptions.push(`${(unitData.timeStop.chance * 100)}% 機率暫停敵方時間 ${unitData.timeStop.duration / 1000} 秒。`); if (unitData.heal) descriptions.push(`可治療範圍內我方單位，每秒恢復 ${unitData.heal} 點生命。`); if (unitData.attackBuff) descriptions.push(`可強化範圍內我方單位，提升 ${((unitData.attackBuff.multiplier - 1) * 100).toFixed(0)}% 攻擊力，持續 ${unitData.attackBuff.duration / 1000} 秒。`); if (unitData.moneyOnKill) descriptions.push(`擊敗敵人時，有 ${(unitData.moneyOnKill.chance * 100)}% 機率獲得 $${unitData.moneyOnKill.amount}。`); if (unitData.summonOnKill) { const summoned = ALL_UNITS[unitData.summonOnKill.unitId]; descriptions.push(`擊敗敵人時，有 ${(unitData.summonOnKill.chance * 100)}% 機率召喚一隻「${summoned.name}」。`); } if (unitData.blockChance) descriptions.push(`有 ${(unitData.blockChance * 100)}% 機率格檔所有傷害。`); if (unitData.dodgeChance) descriptions.push(`有 ${(unitData.dodgeChance * 100)}% 機率閃避攻擊。`); if (unitData.damageReduction) descriptions.push(`有 ${(unitData.damageReduction.chance * 100)}% 機率使受到的傷害減少 ${((1 - unitData.damageReduction.multiplier) * 100)}%。`); if (unitData.lifeSpan) descriptions.push(`此單位只能在場上存在 ${unitData.lifeSpan / 1000} 秒。`); if (descriptions.length === 0) { return '<h4>特殊能力</h4><p>沒有特殊能力。</p>'; } return `<h4>特殊能力</h4><ul><li>${descriptions.join('</li><li>')}</li></ul>`; }
         
-        function init() { loadGame(); setupEventListeners(); updateTopBar(); switchScreen('start-screen'); }
+        function checkForIOS() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+            const hasSeenGuide = localStorage.getItem('hasSeenIosGuide');
+
+            if (isIOS && !isInStandaloneMode && !hasSeenGuide) {
+                document.getElementById('ios-guide-overlay').style.display = 'flex';
+            }
+        }
+        
+        function init() { 
+            loadGame(); 
+            setupEventListeners(); 
+            updateTopBar(); 
+            switchScreen('start-screen');
+            checkForIOS();
+        }
         init();
     });
 </script>
