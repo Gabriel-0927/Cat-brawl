@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貓咪大亂鬥 V10.3 - 勝利加速</title>
+    <title>貓咪大亂鬥 V10.4 - 介面優化</title>
     <!-- 引入 pako 壓縮函式庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
-        /* CSS樣式 (與上一版完全相同，此處省略以節省空間) */
+        /* CSS樣式 */
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; user-select: none; }
         #game-container { width: 800px; height: 550px; background-color: #fff; border: 2px solid #333; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); position: relative; overflow: hidden; }
         #game-container:fullscreen {
@@ -27,6 +27,19 @@
         @keyframes time-stop-anim { 0% { backdrop-filter: invert(0) sepia(0); } 50% { backdrop-filter: invert(1) sepia(100%); } 100% { backdrop-filter: invert(0) sepia(0); } }
         @keyframes blink-anim { 50% { opacity: 0.3; } }
         @keyframes freeze-in-anim { from { transform: translate(-50%, -50%) scale(0.5) rotate(-90deg); opacity: 0; } to { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.8; } }
+        
+        /* ++ NEW: Fade-in animation for game over screen elements ++ */
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         .back-button { position: absolute; top: 20px; left: 20px; font-size: 16px; padding: 8px 15px; cursor: pointer; background: #6c7a89; color: white; border-radius: 8px; border: none; border-bottom: 3px solid #4d5a68; z-index: 101; transition: all 0.1s ease-in-out; }
         .back-button:hover { background: #8d99ae; }
         .back-button:active { transform: translateY(2px); border-bottom-width: 1px; }
@@ -147,7 +160,31 @@
         .heal-effect, .damage-text { position: absolute; font-size: 18px; font-weight: bold; z-index: 5; pointer-events: none; animation: heal-effect-anim 0.8s forwards; text-shadow: 1px 1px 2px black; }
         .heal-effect { color: #2ecc71; }
         #time-stop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 50; animation: time-stop-anim 0.5s ease-in-out; }
-        #game-over-overlay { background-color: rgba(0,0,0,0.7); color: white; text-align: center; justify-content: center; }
+        
+        /* ++ MODIFIED: Game Over Screen Styles ++ */
+        #game-over-overlay {
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8));
+            color: white;
+            text-align: center;
+            justify-content: center;
+            z-index: 150; /* Ensure it's above other battle elements */
+        }
+        #game-over-overlay > * {
+            animation: fade-in-up 0.5s 0.2s both;
+        }
+        #game-over-overlay .hub-button {
+            animation: fade-in-up 0.5s 0.4s both;
+        }
+        #game-over-buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        #back-to-stages-button {
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            border-bottom-color: #1e8449;
+        }
+
         #game-over-treasure-drop { margin-top: 10px; font-size: 18px; font-weight: bold; color: #f1c40f; text-shadow: 1px 1px 2px black; }
         #pause-overlay { background-color: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; z-index: 200; }
         #quit-battle-btn { background: linear-gradient(145deg, #e74c3c, #c0392b); border-bottom-color: #962d22; }
@@ -346,7 +383,18 @@
         </div>
 
         <div id="battle-screen" class="screen"> <button id="pause-btn">❚❚</button> <div id="battlefield"><div id="time-stop-overlay"></div></div> <div id="battle-ui"> <div id="battle-info-panel"> <div id="money-display"></div> <div id="money-level-display"></div> <button id="upgrade-money-btn"></button> </div> <div id="deployment-bar"></div> <div id="battle-controls"> <button id="fire-cannon-btn" class="disabled"> <div id="cannon-charge-bar"></div> <span>💥</span> </button> <button id="speed-toggle-btn"></button> </div> </div> </div>
-        <div id="game-over-overlay" class="screen"> <h2 id="game-over-title"></h2> <p id="game-over-reward"></p> <p id="game-over-treasure-drop"></p> <button id="back-to-hub-button" class="hub-button">返回主選單</button> </div>
+        
+        <!-- ++ MODIFIED: Game Over Screen HTML Structure ++ -->
+        <div id="game-over-overlay" class="screen">
+            <h2 id="game-over-title"></h2>
+            <p id="game-over-reward"></p>
+            <p id="game-over-treasure-drop"></p>
+            <div id="game-over-buttons-container">
+                <button id="back-to-stages-button" class="hub-button">返回關卡</button>
+                <button id="back-to-hub-button" class="hub-button">返回主選單</button>
+            </div>
+        </div>
+
         <div id="pause-overlay" class="screen"> <div class="modal-content" style="width: 300px;"> <h2 style="margin-top: 0;">遊戲暫停</h2> <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;"> <button id="resume-btn" class="hub-button">繼續遊戲</button> <button id="quit-battle-btn" class="hub-button">退出戰鬥</button> </div> </div> </div>
 
         <div id="gacha-animation-overlay"><div id="gacha-gate"></div></div>
@@ -426,10 +474,9 @@
         let hasShownLoginReward = false;
         let isUpgradeMode = false;
 
-        // ++ MODIFIED: Update version for this release ++
-        const GAME_VERSION = '10.3';
+        const GAME_VERSION = '10.4';
         const SAVE_KEY = `catBrawlSaveData_v${GAME_VERSION}`;
-        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.2', 'catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
+        const PREVIOUS_SAVE_KEYS = ['catBrawlSaveData_v10.3', 'catBrawlSaveData_v10.2', 'catBrawlSaveData_v10.1', 'catBrawlSaveData_v10.0'];
 
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
@@ -487,7 +534,6 @@
                 try {
                     let loadedState = JSON.parse(savedData);
                     loadedState = migrateSaveData(loadedState);
-
                     let freshState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() } };
                     playerState = { ...freshState, ...loadedState };
                     playerState.unlockedUnits = new Set(loadedState.unlockedUnits || []);
@@ -580,6 +626,7 @@
         async function handleGachaPull(count, poolType, poolIndex = -1) { let config, rateUpUnits = []; if (poolType === 'normal') { config = POOL_CONFIG.normal; } else { const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool }; rateUpUnits = currentPool.rateUp; } const cost = count === 1 ? config.costSingle : config.costTen; if (playerState.catFood < cost) { showToast('貓罐頭不足！'); return; } document.getElementById('gacha-pull-1').disabled = true; document.getElementById('gacha-pull-10').disabled = true; updateMissionProgress('pull_gacha', count); playerState.catFood -= cost; const results = []; let highestRarity = 'N'; const rarityOrder = { N: 0, R: 1, SSR: 2, UR: 3 }; for (let i = 0; i < count; i++) { let rand = Math.random(), chosenRarity, cumulativeProb = 0; for (const rarity in RARITY_CONFIG) { cumulativeProb += RARITY_CONFIG[rarity].prob; if (rand < cumulativeProb) { chosenRarity = rarity; break; } } if (poolType === 'normal' && chosenRarity === 'UR') chosenRarity = 'SSR'; let unitId; const potentialRateUp = rateUpUnits.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); if (potentialRateUp.length > 0 && Math.random() < 0.5) { unitId = potentialRateUp[Math.floor(Math.random() * potentialRateUp.length)]; } else { const availableUnits = config.units.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); unitId = availableUnits.length > 0 ? availableUnits[Math.floor(Math.random() * availableUnits.length)] : 'cat_basic'; } const isNew = initializeUnit(unitId); if (!isNew) { const conversion = DUPLICATE_CONVERSION[ALL_UNITS[unitId].rarity]; playerState.xp += conversion.xp; playerState.catFood += conversion.food; } results.push({ id: unitId, isNew: isNew }); if (rarityOrder[chosenRarity] > rarityOrder[highestRarity]) { highestRarity = chosenRarity; } } updateTopBar(); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; const gachaGate = document.getElementById('gacha-gate'); gachaGate.className = 'gacha-gate'; let waitTime = 1500; if (highestRarity === 'UR') { gachaGate.classList.add('ur-mode'); waitTime = 3000; } else if (highestRarity === 'SSR') { gachaGate.classList.add('ssr-mode'); waitTime = 2000; } document.getElementById('gacha-animation-overlay').style.display = 'flex'; await sleep(waitTime); document.getElementById('gacha-animation-overlay').style.display = 'none'; const container = document.getElementById('gacha-results'); container.innerHTML = ''; for (const result of results) { const resultContainer = document.createElement('div'); resultContainer.className = 'gacha-card-container'; const card = createUnitCard(result.id); const feedback = document.createElement('div'); feedback.className = 'gacha-card-feedback'; if (result.isNew) { feedback.classList.add('feedback-new'); feedback.textContent = 'NEW!'; } else { const conv = DUPLICATE_CONVERSION[ALL_UNITS[result.id].rarity]; feedback.classList.add('feedback-dupe'); feedback.textContent = `+${conv.xp} XP, +${conv.food}🥫`; } resultContainer.appendChild(card); resultContainer.appendChild(feedback); container.appendChild(resultContainer); const rarity = ALL_UNITS[result.id].rarity; if (rarity === 'SSR' || rarity === 'UR') { resultContainer.classList.add('rare-reveal-animation'); await sleep(800); } else { resultContainer.classList.add('reveal-animation'); await sleep(200); } } document.getElementById('gacha-pull-1').disabled = false; document.getElementById('gacha-pull-10').disabled = false; saveGame(); }
         function renderDeckEditor() { updateUpgradeModeUI(); document.getElementById('deck-count').textContent = playerState.deck.length; document.getElementById('deck-limit').textContent = DECK_SIZE_LIMIT; const deckDisplay = document.getElementById('current-deck-display'); const ownedGrid = document.getElementById('owned-units-grid'); deckDisplay.innerHTML = ''; ownedGrid.innerHTML = ''; playerState.deck.forEach(unitId => { const card = createUnitCard(unitId); card.addEventListener('click', () => { handleDeckChange(unitId, 'remove'); }); card.addEventListener('dblclick', (e) => { e.stopPropagation(); showUpgradeModal(unitId); }); deckDisplay.appendChild(card); }); for (let i = playerState.deck.length; i < DECK_SIZE_LIMIT; i++) { const slot = document.createElement('div'); slot.className = 'deck-slot'; deckDisplay.appendChild(slot); } Object.keys(playerState.unitLevels).sort((a, b) => ALL_UNITS[b].rarity.localeCompare(ALL_UNITS[a].rarity) || getUnitDeployCost(a) - getUnitDeployCost(b)).forEach(unitId => { const card = createUnitCard(unitId); if (playerState.deck.includes(unitId)) { card.classList.add('in-deck'); } card.addEventListener('click', () => { if (isUpgradeMode) { showUpgradeModal(unitId); } else { handleDeckChange(unitId, 'toggle'); } }); ownedGrid.appendChild(card); }); }
         
+        // ++ MODIFIED: Add Event Listener for the new button ++
         function setupEventListeners() {
             document.getElementById('start-screen').addEventListener('click', () => { initBgm(); switchScreen('hub-screen'); }, { once: true });
             document.getElementById('go-to-stages-button').addEventListener('click', () => { renderStageSelect(); switchScreen('stage-select-screen'); });
@@ -596,6 +643,7 @@
             menuModalOverlay.querySelector('.menu-modal-close').addEventListener('click', () => showMenuModal(false));
             menuModalOverlay.addEventListener('click', (e) => { if (e.target.id === 'menu-modal-overlay') showMenuModal(false); });
             document.getElementById('back-to-hub-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); });
+            document.getElementById('back-to-stages-button').addEventListener('click', () => { renderStageSelect(); switchScreen('stage-select-screen'); }); // <-- New listener
             document.getElementById('stage-back-button').addEventListener('click', () => switchScreen('hub-screen'));
             document.getElementById('gacha-main-back-button').addEventListener('click', () => { if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); switchScreen('hub-screen'); });
             document.getElementById('gacha-pool-back-button').addEventListener('click', showPoolSelection);
@@ -680,7 +728,6 @@
         function renderBaseUpgradeScreen() { const cannonLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[cannonLevel - 1]; const nextStats = CANNON_CONFIG[cannonLevel]; const display = document.getElementById('cannon-stats-display'); const upgradeBtn = document.getElementById('upgrade-cannon-btn'); let statsHTML = ` <div class="stat-block">等級: ${currentStats.level}</div> <div class="stat-block">傷害: ${currentStats.damage}</div> <div class="stat-block">擊退: ${currentStats.knockback}</div> <div class="stat-block">充能: ${currentStats.chargeTimeSec}s</div> `; if (nextStats && currentStats.upgradeCost !== Infinity) { statsHTML += ` <div class="stat-block arrow">→</div> <div class="stat-block" style="color:#2ecc71">Lv.${nextStats.level}</div> `; upgradeBtn.textContent = `升級 (花費 ${currentStats.upgradeCost} XP)`; upgradeBtn.classList.toggle('disabled', playerState.xp < currentStats.upgradeCost); upgradeBtn.onclick = handleUpgradeCannon; } else { upgradeBtn.textContent = '已達最高等級'; upgradeBtn.classList.add('disabled'); upgradeBtn.onclick = null; } display.innerHTML = statsHTML; }
         function handleUpgradeCannon() { const currentLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[currentLevel - 1]; if (playerState.xp >= currentStats.upgradeCost) { playerState.xp -= currentStats.upgradeCost; playerState.catCannon.level++; saveGame(); updateTopBar(); renderBaseUpgradeScreen(); } else { alert('XP 不足！'); } }
         
-        // ++ MODIFIED: startStage function ++
         function startStage(stageId) {
             if (playerState.deck.length === 0) {
                 alert("隊伍中沒有任何貓咪！請先到「隊伍編成」畫面設定隊伍。");
@@ -719,11 +766,11 @@
                 moneyLevelConfig: moneyConfig,
                 totalMoneySpent: 0,
                 enemiesKilled: 0,
-                isVictoryRush: false, // ++ NEW: Add victory rush flag
+                isVictoryRush: false,
             };
             
             document.getElementById('speed-toggle-btn').textContent = '1x';
-            // Enable UI elements that might be disabled by victory rush
+            document.getElementById('speed-toggle-btn').disabled = false;
             document.getElementById('deployment-bar').style.pointerEvents = 'auto';
 
             updateCannonUI();
@@ -740,21 +787,18 @@
         function setupBattlefield() { document.getElementById('battlefield').innerHTML = `<div id="time-stop-overlay"></div><div id="player-base" class="base"><div class="base-icon">🏰</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div><div id="enemy-base" class="base"><div class="base-icon">🏯</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div>`; updateDeploymentBar(); updateBattleMoneyUI(); updateBaseHealth(); }
         function updateDeploymentBar() { const bar = document.getElementById('deployment-bar'); bar.innerHTML = ''; const sortedDeck = [...playerState.deck].sort((a, b) => getUnitDeployCost(a) - getUnitDeployCost(b)); sortedDeck.forEach(unitId => { const unitData = playerState.unitLevels[unitId]; const unit = ALL_UNITS[unitId]; const cost = getUnitDeployCost(unitId); const btn = document.createElement('button'); btn.className = 'deploy-button'; btn.dataset.cost = cost; btn.innerHTML = `<div class="card-level" style="font-size:10px;top:2px;right:2px;">Lv.${unitData.level}</div><div class="card-icon" style="font-size:30px;">${unit.icon}</div><div style="font-size:12px; font-weight:bold;">${unit.name}</div><div class="deploy-cost" style="font-size:14px;">$${cost}</div>`; btn.addEventListener('click', () => deployUnit(unitId)); bar.appendChild(btn); }); }
         
-        // ++ MODIFIED: gameLoop function ++
         function gameLoop(currentTime) {
             if (battleState.isGameOver || battleState.isPaused) return;
             const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed;
             battleState.lastFrameTime = currentTime;
             battleState.gameTime += deltaTime;
 
-            // ++ NEW: Victory Rush Logic ++
             const canStartVictoryRush = battleState.enemySpawnQueue.length === 0 && battleState.enemyUnits.length === 0;
             if (canStartVictoryRush && !battleState.isVictoryRush) {
                 battleState.isVictoryRush = true;
-                battleState.battleSpeed = 4; // Set speed to 4x
-                document.getElementById('speed-toggle-btn').textContent = '4x'; // Update UI
+                battleState.battleSpeed = 4;
+                document.getElementById('speed-toggle-btn').textContent = '4x';
                 showToast('攻城開始！');
-                // Disable UI elements that are no longer needed
                 document.getElementById('deployment-bar').style.pointerEvents = 'none';
                 document.getElementById('upgrade-money-btn').disabled = true;
                 document.getElementById('speed-toggle-btn').disabled = true;
