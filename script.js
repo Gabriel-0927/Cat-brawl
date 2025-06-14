@@ -21,19 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
         'endless_1': {
             name: "無盡迴廊",
             background: 'bg-dark',
-            rewardPerSecond: { xp: 1, food: 0.1 }, // 每秒的獎勵
-            initialEnemies: ['doge', 'snake'], // 開場會出現的敵人種類
-            // 難度擴展設定
+            rewardPerSecond: { xp: 1, food: 0.1 },
+            initialEnemies: ['doge', 'snake'],
             scalingTiers: [
-                { time: 60000,  newEnemies: ['bat'], spawnInterval: 8000 }, // 1分鐘後, 加入蝙蝠, 縮短出兵間隔
-                { time: 120000, newEnemies: ['bear'], spawnInterval: 7000, statMultiplier: 1.1 }, // 2分鐘後, 加入熊, 敵人屬性提升10%
-                { time: 240000, newEnemies: ['ghost', 'alien_doge'], spawnInterval: 6000, statMultiplier: 1.25 }, // 4分鐘後
-                { time: 480000, newEnemies: ['cyborg_snake', 'stone_golem'], spawnInterval: 5000, statMultiplier: 1.5 } // 8分鐘後
+                { time: 60000,  newEnemies: ['bat'], spawnInterval: 8000 },
+                { time: 120000, newEnemies: ['bear'], spawnInterval: 7000, statMultiplier: 1.1 },
+                { time: 240000, newEnemies: ['ghost', 'alien_doge'], spawnInterval: 6000, statMultiplier: 1.25 },
+                { time: 480000, newEnemies: ['cyborg_snake', 'stone_golem'], spawnInterval: 5000, statMultiplier: 1.5 }
             ],
             boss: {
-                interval: 180000, // 每 3 分鐘 (180000 ms)
-                pool: ['volcano_golem', 'dark_lord', 'abyss_lord'], // BOSS 池
-                statMultiplierIncrement: 0.5 // 每次出現時，BOSS的額外屬性倍率增量
+                interval: 180000,
+                pool: ['volcano_golem', 'dark_lord', 'abyss_lord'],
+                statMultiplierIncrement: 0.5
             }
         }
     };
@@ -384,6 +383,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('hasSeenIosGuide', 'true');
             });
         }
+        const qualityInfoModal = document.getElementById('quality-info-modal-overlay');
+        qualityInfoModal.querySelector('.quality-info-modal-close').addEventListener('click', hideQualityInfoModal);
+        qualityInfoModal.addEventListener('click', (e) => {
+            if (e.target.id === 'quality-info-modal-overlay') {
+                hideQualityInfoModal();
+            }
+        });
         makeScrollable(document.getElementById('current-deck-display'));
         makeScrollable(document.getElementById('owned-units-grid'));
         makeScrollable(document.getElementById('deployment-bar'));
@@ -541,6 +547,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderEnchantScreen() {
         document.querySelector('#enchant-stone-display span').textContent = playerState.magicStones;
+        
+        const header = document.getElementById('enchant-header');
+        if (!header.querySelector('.quality-info-btn')) {
+            const infoBtn = document.createElement('button');
+            infoBtn.className = 'quality-info-btn';
+            infoBtn.textContent = '!';
+            infoBtn.title = '查看潛能激發詳情';
+            infoBtn.onclick = showQualityInfoModal;
+            header.querySelector('h2').insertAdjacentElement('afterend', infoBtn);
+        }
+
         const grid = document.getElementById('enchant-unit-grid');
         grid.innerHTML = '';
     
@@ -663,6 +680,50 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGame();
         updateTopBar();
         renderEnchantScreen();
+    }
+
+    function showQualityInfoModal() {
+        const qualityTable = document.getElementById('quality-info-table');
+        const costTable = document.getElementById('quality-cost-table');
+        let qualityHtml = `
+            <div class="info-table-header">
+                <div>品質</div>
+                <div>抽中機率</div>
+                <div>屬性加成</div>
+            </div>
+        `;
+        QUALITY_CONFIG.tiers.forEach(tier => {
+            qualityHtml += `
+                <div class="info-table-row">
+                    <div style="color:${tier.color}; font-weight:bold;">【${tier.name}】</div>
+                    <div>${(tier.prob * 100).toFixed(1)}%</div>
+                    <div>+${((tier.bonus - 1) * 100).toFixed(0)}%</div>
+                </div>
+            `;
+        });
+        qualityTable.innerHTML = qualityHtml;
+    
+        let costHtml = `
+            <div class="info-table-header">
+                <div>角色稀有度</div>
+                <div>每次激發花費</div>
+            </div>
+        `;
+        for (const rarity in QUALITY_CONFIG.cost) {
+            costHtml += `
+                <div class="info-table-row">
+                    <div class="rarity-${rarity}">${rarity}</div>
+                    <div>${QUALITY_CONFIG.cost[rarity]} 💎</div>
+                </div>
+            `;
+        }
+        costTable.innerHTML = costHtml;
+    
+        document.getElementById('quality-info-modal-overlay').style.display = 'flex';
+    }
+    
+    function hideQualityInfoModal() {
+        document.getElementById('quality-info-modal-overlay').style.display = 'none';
     }
 
     function closeUpgradeModal() { document.getElementById('upgrade-modal-overlay').style.display = 'none'; renderDeckEditor(); }

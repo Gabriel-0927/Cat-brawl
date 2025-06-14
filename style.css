@@ -102,10 +102,15 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     width: 400px;
     text-align: center;
     position: relative;
-    max-height: 90vh; /* 新增：限制最大高度為視窗的90% */
-    overflow-y: auto; /* 新增：當內容超出高度時，顯示垂直滾動條 */
-    display: flex; /* 新增：使用flexbox佈局 */
-    flex-direction: column; /* 新增：讓內部元素垂直排列 */
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+.modal-scroll-content {
+    overflow-y: auto;
+    padding-right: 15px;
+    flex-grow: 1;
+    min-height: 0;
 }
 #modal-close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #aaa; }
 #modal-close-btn:hover { color: #333; }
@@ -251,9 +256,9 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
 #go-to-menu-button { background: linear-gradient(145deg, #6c7a89, #4d5a68); border-bottom-color: #2b3e50; }
 .pool-details-btn { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; background-color: rgba(0, 0, 0, 0.4); color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; cursor: help; z-index: 10; border: 2px solid white; transition: background-color 0.2s; }
 .pool-details-btn:hover { background-color: rgba(0, 0, 0, 0.6); }
-#gacha-rates-modal-content { width: 600px; max-height: 80%; display: flex; flex-direction: column; }
+#gacha-rates-modal-content { width: 600px; max-height: 80%; }
 #gacha-rates-summary { display: flex; justify-content: space-around; padding: 10px; background-color: #f0f2f5; border-radius: 8px; margin: 15px 0; font-size: 16px; }
-#gacha-rates-details { overflow-y: auto; padding-right: 10px; }
+#gacha-rates-details { padding-right: 10px; }
 #gacha-rates-details h3 { margin-top: 15px; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
 .rate-unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
 .rate-unit-item { position: relative; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; border-radius: 8px; padding: 8px; font-size: 12px; }
@@ -274,19 +279,17 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
 #modal-detail-unit-desc ul { padding-left: 20px; margin: 0; list-style-type: '- '; }
 #modal-detail-unit-desc li { margin-bottom: 8px; line-height: 1.5; }
 .rarity-N { color: #34495e; }
-.rarity-R { color: #2980b9; }
-.rarity-SSR { color: #f1c40f; text-shadow: 0 0 5px rgba(241,196,15,0.5); }
-.rarity-UR { color: #e74c3c; text-shadow: 0 0 8px rgba(231,76,60,0.6); }
+.rarity-R { color: #2980b9; font-weight: bold; }
+.rarity-SSR { color: #f1c40f; font-weight: bold; text-shadow: 0 0 5px rgba(241,196,15,0.5); }
+.rarity-UR { color: #e74c3c; font-weight: bold; text-shadow: 0 0 8px rgba(231,76,60,0.6); }
 #owned-units-grid .unit-card {
-    height: 95%; /* 從 100px 改為百分比，使其能適應容器 */
-    width: 75px;  /* 給定一個固定的寬度以維持比例 */
+    height: 95%;
+    width: 75px;
 }
-/* 新增：主畫面附魔按鈕樣式 */
 #go-to-enchant-button {
     background: linear-gradient(145deg, #9b59b6, #8e44ad);
     border-bottom-color: #6c3483;
 }
-/* 新增：附魔畫面樣式 */
 #enchant-screen {
     background-color: #f4f2f7;
     justify-content: flex-start;
@@ -369,34 +372,28 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
 }
 .enchant-btn:hover:not(.disabled) { background: linear-gradient(145deg, #c39bd3, #af7ac5); }
 .enchant-btn.disabled { background: #d7dbdd; border-bottom-color: #b2babb; cursor: not-allowed; }
-
-/* 關卡選擇畫面的新樣式 */
 #stage-select-screen {
     padding-top: 20px;
     flex-direction: column;
     justify-content: flex-start;
 }
-
 .stage-select-header {
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     margin-bottom: 20px;
-    padding: 0 80px; /* 留出返回按鈕空間 */
+    padding: 0 80px;
     box-sizing: border-box;
 }
-
 .stage-select-header h2 {
     margin: 0 0 15px 0;
 }
-
 .stage-tabs {
     display: flex;
     border-bottom: 2px solid #ccc;
     width: 100%;
 }
-
 .stage-tabs .tab-button {
     padding: 10px 25px;
     font-size: 18px;
@@ -408,18 +405,15 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     color: #7f8c8d;
     transition: all 0.2s ease;
 }
-
 .stage-tabs .tab-button:hover {
     color: #34495e;
 }
-
 .stage-tabs .tab-button.active {
     color: #2980b9;
     border-bottom-color: #2980b9;
 }
-
 .stage-list-container {
-    display: none; /* 預設隱藏 */
+    display: none;
     width: 100%;
     height: calc(100% - 120px);
     overflow-y: auto;
@@ -427,27 +421,81 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 20px;
 }
-
 .stage-list-container.active {
-    display: grid; /* 激活時顯示為 grid */
+    display: grid;
 }
-
-/* 為特殊關卡按鈕添加不同樣式 */
 .stage-button.special {
     background: linear-gradient(to top, #8e44ad, #a569bd);
     border-bottom-color: #6c3483;
 }
-/* 無盡模式存活時間計時器樣式 */
 #survival-timer {
     font-size: 14px;
     font-weight: bold;
-    color: #f1c40f; /* 金色，使其醒目 */
+    color: #f1c40f;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    margin: 4px 0; /* 給予上下一些間距 */
-    display: none; /* 預設隱藏 */
+    margin: 4px 0;
+    display: none;
 }
-/* ... 在 style.css 末尾新增 ... */
-
+.quality-info-btn {
+    width: 28px;
+    height: 28px;
+    background-color: #8e44ad;
+    color: white;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: help;
+    transition: all 0.2s;
+    margin-left: 10px;
+}
+.quality-info-btn:hover {
+    background-color: #9b59b6;
+    transform: scale(1.1);
+}
+#quality-info-modal-content {
+    width: 500px;
+    max-width: 95vw;
+    box-sizing: border-box;
+}
+#quality-info-table, #quality-cost-table {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.info-table-header, .info-table-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 10px 15px;
+    text-align: center;
+    align-items: center;
+}
+#quality-cost-table .info-table-header,
+#quality-cost-table .info-table-row {
+    grid-template-columns: 1fr 1fr;
+}
+.info-table-header {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    color: #333;
+    font-size: 16px;
+}
+.info-table-row {
+    border-top: 1px solid #eee;
+    font-size: 15px;
+}
+.info-table-row:nth-child(even) {
+    background-color: #fbfbfb;
+}
+.info-table-row div:first-child {
+    font-weight: bold;
+}
 .enchant-quality-area {
     margin-top: 15px;
     padding-top: 10px;
@@ -456,12 +504,10 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     justify-content: space-between;
     align-items: center;
 }
-
 .quality-display {
     font-size: 16px;
     color: #555;
 }
-
 .quality-refine-btn {
     background: linear-gradient(145deg, #f39c12, #e67e22);
     border: none;
@@ -473,13 +519,22 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     transition: all 0.1s ease;
     font-size: 12px;
 }
-
 .quality-refine-btn:hover:not(.disabled) {
     background: linear-gradient(145deg, #f1c40f, #f39c12);
 }
-
 .quality-refine-btn.disabled {
     background: #d7dbdd;
     border-bottom-color: #b2babb;
     cursor: not-allowed;
+}
+#quality-info-modal-content h2,
+#quality-info-modal-content p {
+    flex-shrink: 0;
+}
+#quality-info-modal-content .modal-scroll-content {
+    flex-shrink: 1;
+    flex-grow: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 15px;
 }
