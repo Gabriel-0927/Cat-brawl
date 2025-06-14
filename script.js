@@ -2,7 +2,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 遊戲數據與配置 ---
     const ALL_UNITS = { 'cat_basic': { name: '小貓', icon: '😼', rarity: 'N', hp: 100, atk: 10, range: 40, speed: 2, cost: 50 }, 'cat_tank': { name: '坦克貓', icon: '😾', rarity: 'N', hp: 300, atk: 5, range: 35, speed: 1, cost: 75 }, 'cat_crusader': { name: '十字軍貓', icon: '🛡️', rarity: 'N', hp: 250, atk: 12, range: 40, speed: 1.2, cost: 100, blockChance: 0.2 }, 'cat_ninja': { name: '忍者貓', icon: '🥷', rarity: 'N', hp: 80, atk: 15, range: 40, speed: 3, cost: 60 }, 'cat_axe': { name: '斧頭貓', icon: '😺', rarity: 'R', hp: 150, atk: 25, range: 45, speed: 1.5, cost: 120 }, 'cat_magic': { name: '法師貓', icon: '🧙', rarity: 'R', hp: 90, atk: 20, range: 200, speed: 1.2, cost: 200 }, 'cat_freeze': { name: '冷凍貓', icon: '🧊', rarity: 'R', hp: 120, atk: 15, range: 150, speed: 1.5, cost: 280, freeze: { chance: 0.3, duration: 2000 } }, 'cat_samurai': { name: '武士貓', icon: '👺', rarity: 'R', hp: 200, atk: 30, range: 45, speed: 1.8, cost: 180, crit: { chance: 0.1, multiplier: 3 } }, 'cat_miner': { name: '礦工貓', icon: '⛏️', rarity: 'R', hp: 180, atk: 20, range: 40, speed: 1.5, cost: 220, moneyOnKill: { chance: 0.25, amount: 100 } }, 'cat_assassin': { name: '刺客貓', icon: '🗡️', rarity: 'R', hp: 100, atk: 10, range: 40, speed: 3.5, cost: 160, multiHit: { count: 2, delay: 100 } }, 'cat_archer': { name: '弓箭貓', icon: '🏹', rarity: 'R', hp: 100, atk: 18, range: 180, speed: 1.3, cost: 250 }, 'cat_boxer': { name: '拳擊貓', icon: '🥊', rarity: 'R', hp: 220, atk: 40, range: 38, speed: 1.6, cost: 260, knockback: { chance: 0.3 } }, 'cat_king': { name: '獅王貓', icon: '🦁', rarity: 'SSR', hp: 500, atk: 50, range: 60, speed: 1, cost: 400 }, 'cat_dragon': { name: '龍騎士貓', icon: '🐉', rarity: 'SSR', hp: 350, atk: 70, range: 150, speed: 1.5, cost: 550, splashRange: 50 }, 'cat_healer': { name: '治癒貓', icon: '🙏', rarity: 'SSR', hp: 200, atk: 5, range: 120, speed: 1.2, cost: 300, heal: 20 }, 'cat_valkyrie': { name: '女武神貓', icon: '💃', rarity: 'SSR', hp: 400, atk: 40, range: 50, speed: 3, cost: 600, attackInterval: 1000 }, 'cat_gunslinger': { name: '槍手貓', icon: '🤠', rarity: 'SSR', hp: 300, atk: 25, range: 160, speed: 1.5, cost: 500, multiHit: { count: 3, delay: 150 } }, 'cat_bard': { name: '吟遊詩人貓', icon: '🎵', rarity: 'SSR', hp: 250, atk: 0, range: 150, speed: 1.2, cost: 450, attackBuff: { radius: 150, multiplier: 1.2, duration: 5000 } }, 'cat_paladin': { name: '聖騎士貓', icon: '⚜️', rarity: 'SSR', hp: 600, atk: 60, range: 130, speed: 1, cost: 650, splashRange: 30, weaken: { chance: 0.2, multiplier: 0.7, duration: 3000 } }, 'cat_demolitionist': { name: '爆破專家貓', icon: '💣', rarity: 'SSR', hp: 250, atk: 100, range: 160, speed: 1.2, cost: 700, splashRange: 120 }, 'cat_alchemist': { name: '煉金貓', icon: '🧪', rarity: 'SSR', hp: 280, atk: 20, range: 140, speed: 1.3, cost: 620, poison: { chance: 0.4, damage: 15, duration: 5000 } }, 'cat_guardian': { name: '守護貓', icon: '🛡️', rarity: 'SSR', hp: 800, atk: 25, range: 40, speed: 0.8, cost: 500, damageReduction: { chance: 0.3, multiplier: 0.5 } }, 'cat_shaman': { name: '薩滿貓', icon: '🧿', rarity: 'SSR', hp: 300, atk: 35, range: 170, speed: 1.1, cost: 580, curse: { chance: 0.25, duration: 4000 } }, 'cat_mecha': { name: '機械貓神', icon: '🤖', rarity: 'UR', hp: 1200, atk: 150, range: 180, speed: 2, cost: 1200, splashRange: 70 }, 'cat_timelord': { name: '時空貓', icon: '⏳', rarity: 'UR', hp: 800, atk: 80, range: 100, speed: 1, cost: 1500, timeStop: { chance: 0.15, duration: 2500 } }, 'cat_cosmic_dragon': { name: '宇宙龍貓', icon: '☄️', rarity: 'UR', hp: 1500, atk: 180, range: 200, speed: 1, cost: 1800, splashRange: 80, weaken: { chance: 0.3, multiplier: 0.5, duration: 5000 } }, 'cat_sun_god': { name: '太陽神貓', icon: '☀️', rarity: 'UR', hp: 2000, atk: 250, range: 180, speed: 0.8, cost: 2500, waveAttack: { chance: 0.3, distance: 250 } }, 'cat_necromancer': { name: '死靈法師貓', icon: '💀', rarity: 'UR', hp: 900, atk: 100, range: 160, speed: 1, cost: 1600, summonOnKill: { chance: 0.5, unitId: 'minion_skeleton' } }, 'cat_behemoth': { name: '巨獸貓', icon: '🦣', rarity: 'UR', hp: 3000, atk: 200, range: 50, speed: 0.6, cost: 2200, barrier: 1 }, 'minion_skeleton': { name: '骷髏兵', icon: '🦴', rarity: 'N', hp: 50, atk: 20, range: 30, speed: 2, cost: 0, isMinion: true, lifeSpan: 10000 } };
     const ENEMY_UNITS = { 'doge': { name: '狗狗', icon: '🐶', hp: 80, atk: 10, range: 30, speed: 1.5 }, 'snake': { name: '蛇蛇', icon: '🐍', hp: 120, atk: 20, range: 80, speed: 1 }, 'bat': { name: '蝙蝠', icon: '🦇', hp: 50, atk: 15, range: 100, speed: 2.5 }, 'bear': { name: '熊熊', icon: '🐻', hp: 800, atk: 50, range: 40, speed: 0.8 }, 'volcano_golem': { name: '火山魔像', icon: '🌋', hp: 15000, atk: 200, range: 100, speed: 0.5, splashRange: 80 }, 'alien_doge': { name: '外星狗狗', icon: '👽', hp: 100, atk: 15, range: 35, speed: 3, dodgeChance: 0.3 }, 'cyborg_snake': { name: '機械蛇蛇', icon: '🦾', hp: 500, atk: 40, range: 250, speed: 0.7 }, 'dark_lord': { name: '暗黑帝王', icon: '😈', hp: 25000, atk: 300, range: 120, speed: 0.4, waveAttack: { chance: 0.5, distance: 200 } }, 'ghost': { name: '幽靈', icon: '👻', hp: 150, atk: 25, range: 120, speed: 2.2, dodgeChance: 0.5 },'stone_golem': { name: '石頭人', icon: '🧱', hp: 2000, atk: 80, range: 50, speed: 0.4 },'abyss_lord': { name: '深淵領主', icon: '🐙', hp: 80000, atk: 500, range: 150, speed: 0.3, splashRange: 100 } };
-    const TREASURES = { 'grass_amulet': { name: '草原護符', icon: '🍀', desc: '戰鬥開始時，金錢上限 +500。', effect: { type: 'moneyMax', value: 500 } }, 'cave_crystal': { name: '洞窟水晶', icon: '💎', desc: '金錢生產速度提升 10%。', effect: { type: 'moneyRate', value: 1.1 } }, 'forest_idol': { name: '森林神像', icon: '🗿', desc: '所有貓咪的 HP 提升 10%。', effect: { type: 'unitHp', value: 1.1 } }, 'plateau_relic': { name: '高原遺物', icon: '📜', desc: '所有貓咪的攻擊力提升 10%。', effect: { type: 'unitAtk', value: 1.1 } }, 'volcano_heart': { name: '火山之心', icon: '❤️‍🔥', desc: '貓咪砲充能時間減少 15%。', effect: { type: 'cannonCharge', value: 0.85 } }, 'cosmic_map': { name: '宇宙地圖', icon: '🗺️', desc: '我方基地 HP 增加 20%。', effect: { type: 'baseHp', value: 1.2 } }, 'steel_blueprint': { name: '鋼鐵藍圖', icon: '🔩', desc: '貓咪砲傷害提升 25%。', effect: { type: 'cannonDamage', value: 1.25 } }, 'dark_crown': { name: '暗黑王冠', icon: '👑', desc: 'XP 獲得量永久提升 20%。', effect: { type: 'xpGain', value: 1.2 } },'abyss_tentacle': { name: '深淵觸手', icon: '🦑', desc: '所有貓咪的出擊成本降低 5%。', effect: { type: 'costReduction', value: 0.95 } }, 'celestial_shield': { name: '蒼天之盾', icon: '🌌', desc: '我方基地受到的傷害減少 10%。', effect: { type: 'baseDamageReduction', value: 0.9 } }, 'crystal_of_speed': { name: '疾風水晶', icon: '🌪️', desc: '所有貓咪的移動速度提升 10%。', effect: { type: 'unitSpeed', value: 1.1 } }, 'orb_of_power': { name: '力量寶珠', icon: '🔮', desc: '貓咪砲的擊退效果提升 20%。', effect: { type: 'cannonKnockback', value: 1.2 } } };
+    const TREASURES = { 
+        'grass_amulet': { name: '草原護符', icon: '🍀', desc: '戰鬥開始時，金錢上限 +500。', effect: { type: 'moneyMax', value: 500 } }, 
+        'cave_crystal': { name: '洞窟水晶', icon: '💎', desc: '金錢生產速度提升 10%。', effect: { type: 'moneyRate', value: 1.1 } }, 
+        'forest_idol': { name: '森林神像', icon: '🗿', desc: '所有貓咪的 HP 提升 10%。', effect: { type: 'unitHp', value: 1.1 } }, 
+        'plateau_relic': { name: '高原遺物', icon: '📜', desc: '所有貓咪的攻擊力提升 10%。', effect: { type: 'unitAtk', value: 1.1 } }, 
+        'volcano_heart': { name: '火山之心', icon: '❤️‍🔥', desc: '貓咪砲充能時間減少 15%。', effect: { type: 'cannonCharge', value: 0.85 } }, 
+        'cosmic_map': { name: '宇宙地圖', icon: '🗺️', desc: '我方基地 HP 增加 20%。', effect: { type: 'baseHp', value: 1.2 } }, 
+        'steel_blueprint': { name: '鋼鐵藍圖', icon: '🔩', desc: '貓咪砲傷害提升 25%。', effect: { type: 'cannonDamage', value: 1.25 } }, 
+        'dark_crown': { name: '暗黑王冠', icon: '👑', desc: 'XP 獲得量永久提升 20%。', effect: { type: 'xpGain', value: 1.2 } },
+        'abyss_tentacle': { name: '深淵觸手', icon: '🦑', desc: '所有貓咪的出擊成本降低 5%。', effect: { type: 'costReduction', value: 0.95 } }, 
+        'celestial_shield': { name: '蒼天之盾', icon: '🌌', desc: '我方基地受到的傷害減少 10%。', effect: { type: 'baseDamageReduction', value: 0.9 } }, 
+        'crystal_of_speed': { name: '疾風水晶', icon: '🌪️', desc: '所有貓咪的移動速度提升 10%。', effect: { type: 'unitSpeed', value: 1.1 } }, 
+        'orb_of_power': { name: '力量寶珠', icon: '🔮', desc: '貓咪砲的擊退效果提升 20%。', effect: { type: 'cannonKnockback', value: 1.2 } },
+        'endless_can': { 
+            name: '迴廊沙漏', 
+            icon: '⏳', 
+            desc: '你在無盡的時間中窺見了財富的流動。所有貓罐頭的獲取量提升 10%。(透過在無盡迴廊存活超過10分鐘獲得)', 
+            effect: { type: 'catFoodGain', value: 1.1 } 
+        }
+    };
     const STAGE_CONFIG = {
         1: { name: "新手草原", background: 'bg-grassland', enemyBaseHp: 2000, reward: { food: 50, xp: 100 }, enemies: [{ type: 'doge', time: 3 }, { type: 'doge', time: 8 }], treasureDrop: { id: 'grass_amulet', chance: 0.3 } },
         2: { name: "陰森洞窟", background: 'bg-cave', enemyBaseHp: 4000, reward: { food: 80, xp: 250 }, enemies: [{ type: 'snake', time: 4 }, { type: 'bat', time: 7 }, { type: 'doge', time: 10 }], treasureDrop: { id: 'cave_crystal', chance: 0.25 } },
@@ -316,7 +335,107 @@ document.addEventListener('DOMContentLoaded', () => {
         }, true);
     }
 
-    async function handleGachaPull(count, poolType, poolIndex = -1) { let config, rateUpUnits = []; if (poolType === 'normal') { config = POOL_CONFIG.normal; } else { const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool }; rateUpUnits = currentPool.rateUp; } const cost = count === 1 ? config.costSingle : config.costTen; if (playerState.catFood < cost) { showToast('貓罐頭不足！'); return; } document.getElementById('gacha-pull-1').disabled = true; document.getElementById('gacha-pull-10').disabled = true; updateMissionProgress('pull_gacha', count); playerState.catFood -= cost; const results = []; let highestRarity = 'N'; const rarityOrder = { N: 0, R: 1, SSR: 2, UR: 3 }; for (let i = 0; i < count; i++) { let rand = Math.random(), chosenRarity, cumulativeProb = 0; for (const rarity in RARITY_CONFIG) { cumulativeProb += RARITY_CONFIG[rarity].prob; if (rand < cumulativeProb) { chosenRarity = rarity; break; } } if (poolType === 'normal' && chosenRarity === 'UR') chosenRarity = 'SSR'; let unitId; const potentialRateUp = rateUpUnits.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); if (potentialRateUp.length > 0 && Math.random() < 0.5) { unitId = potentialRateUp[Math.floor(Math.random() * potentialRateUp.length)]; } else { const availableUnits = config.units.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); unitId = availableUnits.length > 0 ? availableUnits[Math.floor(Math.random() * availableUnits.length)] : 'cat_basic'; } const isNew = initializeUnit(unitId); if (!isNew) { const conversion = DUPLICATE_CONVERSION[ALL_UNITS[unitId].rarity]; playerState.xp += conversion.xp; playerState.catFood += conversion.food; } results.push({ id: unitId, isNew: isNew }); if (rarityOrder[chosenRarity] > rarityOrder[highestRarity]) { highestRarity = chosenRarity; } } updateTopBar(); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; const gachaGate = document.getElementById('gacha-gate'); gachaGate.className = 'gacha-gate'; let waitTime = 1500; if (highestRarity === 'UR') { gachaGate.classList.add('ur-mode'); waitTime = 3000; } else if (highestRarity === 'SSR') { gachaGate.classList.add('ssr-mode'); waitTime = 2000; } document.getElementById('gacha-animation-overlay').style.display = 'flex'; await sleep(waitTime); document.getElementById('gacha-animation-overlay').style.display = 'none'; const container = document.getElementById('gacha-results'); container.innerHTML = ''; for (const result of results) { const resultContainer = document.createElement('div'); resultContainer.className = 'gacha-card-container'; const card = createUnitCard(result.id); const feedback = document.createElement('div'); feedback.className = 'gacha-card-feedback'; if (result.isNew) { feedback.classList.add('feedback-new'); feedback.textContent = 'NEW!'; } else { const conv = DUPLICATE_CONVERSION[ALL_UNITS[result.id].rarity]; feedback.classList.add('feedback-dupe'); feedback.textContent = `+${conv.xp} XP, +${conv.food}🥫`; } resultContainer.appendChild(card); resultContainer.appendChild(feedback); container.appendChild(resultContainer); const rarity = ALL_UNITS[result.id].rarity; if (rarity === 'SSR' || rarity === 'UR') { resultContainer.classList.add('rare-reveal-animation'); await sleep(800); } else { resultContainer.classList.add('reveal-animation'); await sleep(200); } } document.getElementById('gacha-pull-1').disabled = false; document.getElementById('gacha-pull-10').disabled = false; saveGame(); }
+    async function handleGachaPull(count, poolType, poolIndex = -1) { 
+        let config, rateUpUnits = []; 
+        if (poolType === 'normal') { 
+            config = POOL_CONFIG.normal; 
+        } else { 
+            const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; 
+            config = { ...POOL_CONFIG.limited, ...currentPool }; 
+            rateUpUnits = currentPool.rateUp; 
+        } 
+        const cost = count === 1 ? config.costSingle : config.costTen; 
+        if (playerState.catFood < cost) { 
+            showToast('貓罐頭不足！'); 
+            return; 
+        } 
+        document.getElementById('gacha-pull-1').disabled = true; 
+        document.getElementById('gacha-pull-10').disabled = true; 
+        updateMissionProgress('pull_gacha', count); 
+        playerState.catFood -= cost; 
+        const results = []; 
+        let highestRarity = 'N'; 
+        const rarityOrder = { N: 0, R: 1, SSR: 2, UR: 3 }; 
+        for (let i = 0; i < count; i++) { 
+            let rand = Math.random(), chosenRarity, cumulativeProb = 0; 
+            for (const rarity in RARITY_CONFIG) { 
+                cumulativeProb += RARITY_CONFIG[rarity].prob; 
+                if (rand < cumulativeProb) { 
+                    chosenRarity = rarity; 
+                    break; 
+                } 
+            } 
+            if (poolType === 'normal' && chosenRarity === 'UR') chosenRarity = 'SSR'; 
+            let unitId; 
+            const potentialRateUp = rateUpUnits.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); 
+            if (potentialRateUp.length > 0 && Math.random() < 0.5) { 
+                unitId = potentialRateUp[Math.floor(Math.random() * potentialRateUp.length)]; 
+            } else { 
+                const availableUnits = config.units.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); 
+                unitId = availableUnits.length > 0 ? availableUnits[Math.floor(Math.random() * availableUnits.length)] : 'cat_basic'; 
+            } 
+            const isNew = initializeUnit(unitId); 
+            if (!isNew) { 
+                const conversion = DUPLICATE_CONVERSION[ALL_UNITS[unitId].rarity]; 
+                playerState.xp += conversion.xp; 
+                let foodAmount = conversion.food;
+                if (playerState.treasures['endless_can']) {
+                    foodAmount = Math.round(foodAmount * TREASURES['endless_can'].effect.value);
+                }
+                playerState.catFood += foodAmount;
+            } 
+            results.push({ id: unitId, isNew: isNew }); 
+            if (rarityOrder[chosenRarity] > rarityOrder[highestRarity]) { 
+                highestRarity = chosenRarity; 
+            } 
+        } 
+        updateTopBar(); 
+        document.querySelector('#gacha-current-food span').textContent = playerState.catFood; 
+        const gachaGate = document.getElementById('gacha-gate'); 
+        gachaGate.className = 'gacha-gate'; 
+        let waitTime = 1500; 
+        if (highestRarity === 'UR') { 
+            gachaGate.classList.add('ur-mode'); 
+            waitTime = 3000; 
+        } else if (highestRarity === 'SSR') { 
+            gachaGate.classList.add('ssr-mode'); 
+            waitTime = 2000; 
+        } 
+        document.getElementById('gacha-animation-overlay').style.display = 'flex'; 
+        await sleep(waitTime); 
+        document.getElementById('gacha-animation-overlay').style.display = 'none'; 
+        const container = document.getElementById('gacha-results'); 
+        container.innerHTML = ''; 
+        for (const result of results) { 
+            const resultContainer = document.createElement('div'); 
+            resultContainer.className = 'gacha-card-container'; 
+            const card = createUnitCard(result.id); 
+            const feedback = document.createElement('div'); 
+            feedback.className = 'gacha-card-feedback'; 
+            if (result.isNew) { 
+                feedback.classList.add('feedback-new'); 
+                feedback.textContent = 'NEW!'; 
+            } else { 
+                const conv = DUPLICATE_CONVERSION[ALL_UNITS[result.id].rarity]; 
+                feedback.classList.add('feedback-dupe'); 
+                feedback.textContent = `+${conv.xp} XP, +${conv.food}🥫`; 
+            } 
+            resultContainer.appendChild(card); 
+            resultContainer.appendChild(feedback); 
+            container.appendChild(resultContainer); 
+            const rarity = ALL_UNITS[result.id].rarity; 
+            if (rarity === 'SSR' || rarity === 'UR') { 
+                resultContainer.classList.add('rare-reveal-animation'); 
+                await sleep(800); 
+            } else { 
+                resultContainer.classList.add('reveal-animation'); 
+                await sleep(200); 
+            } 
+        } 
+        document.getElementById('gacha-pull-1').disabled = false; 
+        document.getElementById('gacha-pull-10').disabled = false; 
+        saveGame(); 
+    }
     
     function setupEventListeners() {
         document.getElementById('start-screen').addEventListener('click', () => { initBgm(); switchScreen('hub-screen'); }, { once: true });
@@ -1156,6 +1275,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (battleState.isEndlessMode) {
             const survivalTimeSec = Math.floor(battleState.gameTime / 1000);
+            
+            const ENDLESS_TREASURE_ID = 'endless_can';
+            const REQUIRED_TIME_SEC = 600; 
+
+            if (survivalTimeSec >= REQUIRED_TIME_SEC && !playerState.treasures[ENDLESS_TREASURE_ID]) {
+                playerState.treasures[ENDLESS_TREASURE_ID] = true;
+                const newTreasure = TREASURES[ENDLESS_TREASURE_ID];
+                showToast(`✨ 獲得稀有寶物：${newTreasure.name} ${newTreasure.icon} ✨`);
+            }
+            
             const config = battleState.endless.config;
             
             const B_xp = config.rewardPerSecond.xp;
@@ -1165,8 +1294,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const T = survivalTimeSec;
 
             const totalXpReward = T > 0 ? (2 * B_xp + (T - 1) * G_xp) * T / 2 : 0;
-            const totalFoodReward = T > 0 ? (2 * B_food + (T - 1) * G_food) * T / 2 : 0;
+            let totalFoodReward = T > 0 ? (2 * B_food + (T - 1) * G_food) * T / 2 : 0;
             
+            if (playerState.treasures['endless_can']) {
+                totalFoodReward *= TREASURES['endless_can'].effect.value;
+            }
+
             const finalFoodReward = Math.floor(totalFoodReward);
             const finalXpReward = Math.floor(totalXpReward);
             
@@ -1200,10 +1333,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isVictory) {
             const stage = STAGE_CONFIG[battleState.stageId];
             let reward = stage.reward;
+
+            let foodAmount = reward.food;
+            if (playerState.treasures['endless_can']) {
+                foodAmount = Math.round(foodAmount * TREASURES['endless_can'].effect.value);
+            }
+
             let xpMultiplier = 1;
             if (playerState.treasures['dark_crown']) xpMultiplier = TREASURES['dark_crown'].effect.value;
             const finalXp = Math.round(reward.xp * xpMultiplier);
-            playerState.catFood += reward.food;
+            
+            playerState.catFood += foodAmount;
             playerState.xp += finalXp;
             title.textContent = "勝利！";
             let extraRewards = [];
@@ -1212,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 playerState.magicStones += amount;
                 extraRewards.push(`💎x${amount}`);
             }
-            rewardText.textContent = `獲得 🥫x${reward.food}, 🌟x${finalXp}` + (extraRewards.length > 0 ? `, ${extraRewards.join(', ')}` : '');
+            rewardText.textContent = `獲得 🥫x${foodAmount}, 🌟x${finalXp}` + (extraRewards.length > 0 ? `, ${extraRewards.join(', ')}` : '');
             updateMissionProgress('win_stages', 1);
             if (stage.treasureDrop && !playerState.treasures[stage.treasureDrop.id] && Math.random() < stage.treasureDrop.chance) {
                 const treasureId = stage.treasureDrop.id;
@@ -1250,6 +1390,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function quitBattle() {
         if (battleState.isEndlessMode) {
+	    togglePause(false);
             endGame(false, true, true);
         } else {
             battleState.isGameOver = true;
@@ -1313,12 +1454,76 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderLoginRewards() { const grid = document.getElementById('login-rewards-grid'); grid.innerHTML = ''; const streak = playerState.loginStreak; const lastClaimed = playerState.lastClaimedStreak || 0; for (let i = 0; i < 7; i++) { const day = i + 1; const reward = LOGIN_REWARDS[i]; const item = document.createElement('div'); item.className = 'login-reward-item'; if (day <= lastClaimed) { item.classList.add('claimed'); } else if (day <= streak) { item.classList.add('today'); item.style.cursor = 'pointer'; item.addEventListener('click', () => claimLoginReward(day)); } item.innerHTML = ` <div class="day">第 ${day} 天</div> <div class="reward-icon">${reward.icon}</div> <div class="reward-text">+${reward.value} ${reward.type === 'food' ? '🥫' : '🌟'}</div> `; grid.appendChild(item); } }
     function claimLoginReward(day) { if (day > playerState.loginStreak || day <= (playerState.lastClaimedStreak || 0)) return; const reward = LOGIN_REWARDS[day - 1]; if (reward.type === 'food') { playerState.catFood += reward.value; } else { playerState.xp += reward.value; } playerState.lastClaimedStreak = day; showToast(`領取成功！+${reward.value} ${reward.type === 'food' ? '罐頭' : 'XP'}`); updateTopBar(); renderLoginRewards(); saveGame(); }
     function renderMissions() { const list = document.getElementById('mission-list'); list.innerHTML = ''; playerState.dailyMissions.forEach((mission, index) => { const template = MISSION_POOL.find(m => m.id === mission.id); if (!template) return; const item = document.createElement('div'); item.className = 'mission-item'; const canClaim = mission.progress >= mission.target && !mission.claimed; const reward = template.reward; const rewardIcon = reward.type === 'food' ? '🥫' : (reward.type === 'stones' ? '💎' : '🌟'); item.innerHTML = ` <div class="mission-desc">${template.text(mission.target)}</div> <div class="mission-progress">${mission.progress}/${mission.target}</div> <button class="mission-claim-btn ${canClaim ? '' : 'disabled'}" data-index="${index}"> ${rewardIcon} +${reward.value} </button> `; list.appendChild(item); }); }
-    function claimMission(index) { const mission = playerState.dailyMissions[index]; if (mission && mission.progress >= mission.target && !mission.claimed) { const template = MISSION_POOL.find(m => m.id === mission.id); const reward = template.reward; let rewardText = ''; if (reward.type === 'food') { playerState.catFood += reward.value; rewardText = `+${reward.value} 罐頭`; } else if (reward.type === 'xp') { playerState.xp += reward.value; rewardText = `+${reward.value} XP`; } mission.claimed = true; showToast(`任務完成！${rewardText}`); updateTopBar(); saveGame(); renderMissions(); updateNotificationBadge(); } }
+    function claimMission(index) { 
+        const mission = playerState.dailyMissions[index]; 
+        if (mission && mission.progress >= mission.target && !mission.claimed) { 
+            const template = MISSION_POOL.find(m => m.id === mission.id); 
+            const reward = template.reward; 
+            let rewardText = ''; 
+            if (reward.type === 'food') { 
+                let foodAmount = reward.value;
+                if (playerState.treasures['endless_can']) {
+                    foodAmount = Math.round(foodAmount * TREASURES['endless_can'].effect.value);
+                }
+                playerState.catFood += foodAmount; 
+                rewardText = `+${foodAmount} 罐頭`; 
+            } else if (reward.type === 'xp') { 
+                playerState.xp += reward.value; 
+                rewardText = `+${reward.value} XP`; 
+            } 
+            mission.claimed = true; 
+            showToast(`任務完成！${rewardText}`); 
+            updateTopBar(); 
+            saveGame(); 
+            renderMissions(); 
+            updateNotificationBadge(); 
+        } 
+    }
     function switchTab(tabName) { document.querySelectorAll('#daily-modal-overlay .tab-button').forEach(btn => btn.classList.remove('active')); document.querySelector(`#daily-modal-overlay .tab-button[data-tab="${tabName}"]`).classList.add('active'); document.querySelectorAll('#daily-modal-overlay .tab-content').forEach(content => content.classList.remove('active')); document.getElementById(`${tabName}-tab`).classList.add('active'); }
     function renderCollectionBook() { renderCollectionGrid('player-units', ALL_UNITS, playerState.unlockedUnits, playerState.collectionRewards.units); renderCollectionGrid('enemy-units', ENEMY_UNITS, playerState.seenEnemies, playerState.collectionRewards.enemies); updateCollectionBookBadge(); }
     function renderCollectionGrid(tabId, source, unlockedSet, claimedSet) { const grid = document.getElementById(`${tabId}-tab`); grid.innerHTML = ''; Object.keys(source).filter(id => !source[id].isMinion).forEach(id => { const itemData = source[id]; const isUnlocked = unlockedSet.has(id); const isClaimed = claimedSet.has(id); const item = document.createElement('div'); item.className = `collection-item ${isUnlocked ? '' : 'locked'}`; item.dataset.unitId = id; item.innerHTML = ` <div class="item-icon">${isUnlocked ? itemData.icon : '❓'}</div> <div class="item-name">${isUnlocked ? itemData.name : '未發現'}</div> `; if (isUnlocked && !isClaimed) { const claimBtn = document.createElement('button'); claimBtn.className = 'reward-claim-button'; claimBtn.textContent = '🎁'; claimBtn.title = `領取 ${COLLECTION_REWARD_AMOUNT} 罐頭`; claimBtn.addEventListener('click', (e) => { e.stopPropagation(); claimCollectionReward(id, tabId.includes('player') ? 'units' : 'enemies'); }); item.appendChild(claimBtn); } grid.appendChild(item); }); }
-    function claimCollectionReward(id, type) { if (!playerState.collectionRewards[type].has(id)) { playerState.collectionRewards[type].add(id); playerState.catFood += COLLECTION_REWARD_AMOUNT; showToast(`領取成功！+${COLLECTION_REWARD_AMOUNT} 罐頭`); updateTopBar(); renderCollectionBook(); saveGame(); } }
-    function claimAllCollectionRewards() { let totalClaimed = 0; const types = ['units', 'enemies']; types.forEach(type => { const unlockedSet = type === 'units' ? playerState.unlockedUnits : playerState.seenEnemies; unlockedSet.forEach(id => { if (!playerState.collectionRewards[type].has(id)) { playerState.collectionRewards[type].add(id); totalClaimed++; } }); }); if (totalClaimed > 0) { const totalReward = totalClaimed * COLLECTION_REWARD_AMOUNT; playerState.catFood += totalReward; showToast(`一鍵領取 ${totalClaimed} 項獎勵，共獲得 ${totalReward} 罐頭！`); updateTopBar(); renderCollectionBook(); saveGame(); } else { showToast('沒有可領取的獎勵'); } }
+    function claimCollectionReward(id, type) { 
+        if (!playerState.collectionRewards[type].has(id)) { 
+            playerState.collectionRewards[type].add(id); 
+            
+            let foodAmount = COLLECTION_REWARD_AMOUNT;
+            if (playerState.treasures['endless_can']) {
+                foodAmount = Math.round(foodAmount * TREASURES['endless_can'].effect.value);
+            }
+            playerState.catFood += foodAmount;
+            showToast(`領取成功！+${foodAmount} 罐頭`);
+            
+            updateTopBar(); 
+            renderCollectionBook(); 
+            saveGame(); 
+        } 
+    }
+    function claimAllCollectionRewards() { 
+        let totalClaimed = 0; 
+        const types = ['units', 'enemies']; 
+        types.forEach(type => { 
+            const unlockedSet = type === 'units' ? playerState.unlockedUnits : playerState.seenEnemies; 
+            unlockedSet.forEach(id => { 
+                if (!playerState.collectionRewards[type].has(id)) { 
+                    playerState.collectionRewards[type].add(id); 
+                    totalClaimed++; 
+                } 
+            }); 
+        }); 
+        if (totalClaimed > 0) { 
+            let totalReward = totalClaimed * COLLECTION_REWARD_AMOUNT;
+            if (playerState.treasures['endless_can']) {
+                totalReward = Math.round(totalReward * TREASURES['endless_can'].effect.value);
+            }
+            playerState.catFood += totalReward;
+            showToast(`一鍵領取 ${totalClaimed} 項獎勵，共獲得 ${totalReward} 罐頭！`); 
+            updateTopBar(); 
+            renderCollectionBook(); 
+            saveGame(); 
+        } else { 
+            showToast('沒有可領取的獎勵'); 
+        } 
+    }
     function updateCollectionBookBadge() { let hasClaimable = false; playerState.unlockedUnits.forEach(id => { if (!playerState.collectionRewards.units.has(id)) hasClaimable = true; }); if (!hasClaimable) { playerState.seenEnemies.forEach(id => { if (!playerState.collectionRewards.enemies.has(id)) hasClaimable = true; }); } const badge = document.querySelector('#go-to-collection-book-button .notification-badge'); if(badge) badge.style.display = hasClaimable ? 'flex' : 'none'; }
     function renderShopScreen() { const grid = document.getElementById('shop-grid'); grid.innerHTML = ''; for (const itemId in SHOP_ITEMS) { const item = SHOP_ITEMS[itemId]; const card = document.createElement('div'); card.className = 'shop-item-card'; const buyBtn = document.createElement('button'); buyBtn.className = 'shop-buy-btn'; buyBtn.textContent = `購買 (${item.cost} 🥫)`; buyBtn.addEventListener('click', () => handlePurchase(itemId)); if (playerState.catFood < item.cost) { buyBtn.classList.add('disabled'); } const rewardIcon = item.reward.type === 'xp' ? '🌟' : '💎'; const rewardText = `${rewardIcon} +${item.reward.value.toLocaleString()}`; card.innerHTML = ` <div class="shop-item-icon">${item.icon}</div> <div class="shop-item-name">${item.name}</div> <div class="shop-item-reward">${rewardText}</div> <div class="shop-item-desc">${item.desc}</div> `; const buySection = document.createElement('div'); buySection.className = 'shop-item-buy-section'; buySection.appendChild(buyBtn); card.appendChild(buySection); grid.appendChild(card); } }
     function handlePurchase(itemId) { const item = SHOP_ITEMS[itemId]; if (playerState.catFood < item.cost) { showToast('貓罐頭不足！'); return; } playerState.catFood -= item.cost; let rewardText = ''; if (item.reward.type === 'xp') { playerState.xp += item.reward.value; rewardText = `+${item.reward.value.toLocaleString()} 🌟`; } else if (item.reward.type === 'magicStones') { playerState.magicStones += item.reward.value; rewardText = `+${item.reward.value.toLocaleString()} 💎`; } showToast(`購買成功！ ${rewardText}`); updateTopBar(); saveGame(); renderShopScreen(); }
