@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
             name: "無盡迴廊",
             background: 'bg-dark',
             rewardPerSecond: { xp: 1, food: 0.1 },
+            rewardGrowthPerSecond: { xp: 0.01, food: 0.0002 },
             initialEnemies: ['doge', 'snake'],
             scalingTiers: [
                 { time: 60000,  newEnemies: ['bat'], spawnInterval: 8000 },
@@ -808,19 +809,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     
         let stage, isEndless = (type === 'special');
-        const survivalTimer = document.getElementById('survival-timer');
+        const topInfoContainer = document.getElementById('battle-top-info');
     
         if (isEndless) {
             stage = SPECIAL_STAGE_CONFIG[stageId];
-            if (survivalTimer) {
-                survivalTimer.style.display = 'block';
-                survivalTimer.textContent = '存活時間: 00:00';
-            }
+            topInfoContainer.innerHTML = `
+                <div id="survival-timer">存活時間: 00:00</div>
+                <div id="endless-reward-display">獎勵: 0🌟 0🥫</div>
+            `;
+            topInfoContainer.style.display = 'flex';
+            document.getElementById('money-level-display').innerHTML = `<span>錢包 Lv: 1</span>`;
+
         } else {
             stage = STAGE_CONFIG[stageId];
-            if (survivalTimer) {
-                survivalTimer.style.display = 'none';
-            }
+            topInfoContainer.innerHTML = '';
+            topInfoContainer.style.display = 'none';
+            document.getElementById('money-level-display').innerHTML = `<span>錢包 Lv: 1</span>`;
         }
     
         let cannonLevelData = { ...CANNON_CONFIG[playerState.catCannon.level - 1] };
@@ -860,6 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
             totalMoneySpent: 0, 
             enemiesKilled: 0, 
             isVictoryRush: false,
+            lastUIUpdateTime: 0,
         };
     
         if (isEndless) {
@@ -921,13 +926,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (battleState.isEndlessMode) {
             const endless = battleState.endless;
             if (!endless) return;
-    
-            const survivalTimer = document.getElementById('survival-timer');
-            if (survivalTimer) {
-                const survivalTime = Math.floor(battleState.gameTime / 1000);
-                const minutes = Math.floor(survivalTime / 60);
-                const seconds = survivalTime % 60;
-                survivalTimer.textContent = `存活時間: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            if (!battleState.lastUIUpdateTime || currentTime - battleState.lastUIUpdateTime > 1000) {
+                battleState.lastUIUpdateTime = currentTime;
+                
+                const survivalTimeSec = Math.floor(battleState.gameTime / 1000);
+                const minutes = Math.floor(survivalTimeSec / 60);
+                const seconds = survivalTimeSec % 60;
+                
+                const survivalTimer = document.getElementById('survival-timer');
+                if (survivalTimer) {
+                    survivalTimer.textContent = `存活時間: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+
+                const config = endless.config;
+                const B_xp = config.rewardPerSecond.xp;
+                const G_xp = config.rewardGrowthPerSecond.xp;
+                const B_food = config.rewardPerSecond.food;
+                const G_food = config.rewardGrowthPerSecond.food;
+                const T = survivalTimeSec;
+
+                const currentXpReward = T > 0 ? (2 * B_xp + (T - 1) * G_xp) * T / 2 : 0;
+                const currentFoodReward = T > 0 ? (2 * B_food + (T - 1) * G_food) * T / 2 : 0;
+
+                const rewardDisplay = document.getElementById('endless-reward-display');
+                if(rewardDisplay) {
+                    rewardDisplay.innerHTML = `獎勵: ${Math.floor(currentXpReward)}🌟 ${Math.floor(currentFoodReward)}🥫`;
+                }
             }
     
             const nextTier = endless.config.scalingTiers[endless.currentTierIndex + 1];
@@ -1108,13 +1133,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function removeUnit(unitToRemove) { if (unitToRemove.element) unitToRemove.element.remove(); if (unitToRemove.team === 'player') battleState.playerUnits = battleState.playerUnits.filter(u => u.instanceId !== unitToRemove.instanceId); else battleState.enemyUnits = battleState.enemyUnits.filter(u => u.instanceId !== unitToRemove.instanceId); }
     
-    function endGame(isVictory) {
+    function endGame(isVictory, isManualQuit = false, switchToHub = false) {
+        if (battleState.isGameOver) return;
         battleState.isGameOver = true;
         cancelAnimationFrame(gameLoopId);
-        const survivalTimer = document.getElementById('survival-timer');
-        if (survivalTimer) {
-            survivalTimer.style.display = 'none';
+    
+        const topInfoContainer = document.getElementById('battle-top-info');
+        if (topInfoContainer) {
+            topInfoContainer.style.display = 'none';
         }
+        
+        const moneyLevelDisplay = document.getElementById('money-level-display');
+        if(moneyLevelDisplay) {
+             moneyLevelDisplay.innerHTML = `<span>錢包 Lv: 1</span>`;
+        }
+        
         const overlay = document.getElementById('game-over-overlay');
         const title = document.getElementById('game-over-title');
         const rewardText = document.getElementById('game-over-reward');
@@ -1122,24 +1155,44 @@ document.addEventListener('DOMContentLoaded', () => {
         treasureDropText.innerHTML = '';
 
         if (battleState.isEndlessMode) {
-            const survivalTime = Math.floor(battleState.gameTime / 1000);
+            const survivalTimeSec = Math.floor(battleState.gameTime / 1000);
             const config = battleState.endless.config;
-            const foodReward = Math.floor(survivalTime * config.rewardPerSecond.food);
-            const xpReward = Math.floor(survivalTime * config.rewardPerSecond.xp);
+            
+            const B_xp = config.rewardPerSecond.xp;
+            const G_xp = config.rewardGrowthPerSecond.xp;
+            const B_food = config.rewardPerSecond.food;
+            const G_food = config.rewardGrowthPerSecond.food;
+            const T = survivalTimeSec;
 
+            const totalXpReward = T > 0 ? (2 * B_xp + (T - 1) * G_xp) * T / 2 : 0;
+            const totalFoodReward = T > 0 ? (2 * B_food + (T - 1) * G_food) * T / 2 : 0;
+            
+            const finalFoodReward = Math.floor(totalFoodReward);
+            const finalXpReward = Math.floor(totalXpReward);
+            
             const currentRecord = playerState.specialStageRecords[battleState.stageId] || 0;
-            if (survivalTime > currentRecord) {
-                playerState.specialStageRecords[battleState.stageId] = survivalTime;
-                showToast(`新紀錄！你存活了 ${survivalTime} 秒！`);
+            if (survivalTimeSec > currentRecord) {
+                playerState.specialStageRecords[battleState.stageId] = survivalTimeSec;
+                showToast(`新紀錄！你存活了 ${survivalTimeSec} 秒！`);
             }
 
-            playerState.catFood += foodReward;
-            playerState.xp += xpReward;
-
-            title.textContent = "挑戰結束";
-            rewardText.innerHTML = `你存活了 <b>${survivalTime}</b> 秒！<br>獲得 🥫x${foodReward}, 🌟x${xpReward}`;
+            playerState.catFood += finalFoodReward;
+            playerState.xp += finalXpReward;
             updateTopBar();
             saveGame();
+
+            if (switchToHub) {
+                switchScreen('hub-screen');
+                return;
+            }
+
+            if (isManualQuit) {
+                title.textContent = "結算完成";
+            } else {
+                title.textContent = "挑戰結束";
+            }
+            
+            rewardText.innerHTML = `你存活了 <b>${survivalTimeSec}</b> 秒！<br>獲得 🥫x${finalFoodReward}, 🌟x${finalXpReward}`;
             overlay.classList.add('active');
             return;
         }
@@ -1176,8 +1229,36 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.classList.add('active');
     }
 
-    function togglePause(pause) { battleState.isPaused = pause; document.getElementById('pause-overlay').style.display = pause ? 'flex' : 'none'; if (pause) { cancelAnimationFrame(gameLoopId); } else { battleState.lastFrameTime = performance.now(); gameLoopId = requestAnimationFrame(gameLoop); } }
-    function quitBattle() { battleState.isGameOver = true; cancelAnimationFrame(gameLoopId); togglePause(false); switchScreen('hub-screen'); }
+    function togglePause(pause) {
+        battleState.isPaused = pause;
+        document.getElementById('pause-overlay').style.display = pause ? 'flex' : 'none';
+        if (pause) {
+            cancelAnimationFrame(gameLoopId);
+            const quitBtn = document.getElementById('quit-battle-btn');
+            if (battleState.isEndlessMode) {
+                quitBtn.textContent = '結算並退出';
+                quitBtn.title = '結算目前獲得的獎勵並退出戰鬥';
+            } else {
+                quitBtn.textContent = '退出戰鬥';
+                quitBtn.title = '放棄本次挑戰，不會獲得任何獎勵';
+            }
+        } else {
+            battleState.lastFrameTime = performance.now();
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+    }
+    
+    function quitBattle() {
+        if (battleState.isEndlessMode) {
+            endGame(false, true, true);
+        } else {
+            battleState.isGameOver = true;
+            cancelAnimationFrame(gameLoopId);
+            togglePause(false);
+            switchScreen('hub-screen');
+        }
+    }
+    
     function fireCatCannon() { 
         if (battleState.catCannonCharge < battleState.catCannonMaxCharge || battleState.isPaused || battleState.isGameOver) return; 
         const cannonStats = battleState.catCannonData; 
@@ -1200,7 +1281,25 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUnitsPosition(); 
     }
     function updateCannonUI() { const btn = document.getElementById('fire-cannon-btn'); const chargeBar = document.getElementById('cannon-charge-bar'); const chargePercentage = Math.min(100, (battleState.catCannonCharge / battleState.catCannonMaxCharge) * 100); chargeBar.style.height = `${chargePercentage}%`; btn.classList.toggle('disabled', chargePercentage < 100); }
-    function updateBattleMoneyUI() { const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; document.querySelector('#money-display').textContent = `金錢: $${battleState.money} / ${moneyConfig.max}`; document.querySelector('#money-level-display').textContent = `錢包 Lv: ${battleState.moneyLevel + 1}`; const upgradeBtn = document.getElementById('upgrade-money-btn'); const nextLevelConfig = battleState.moneyLevelConfig[battleState.moneyLevel + 1]; if (nextLevelConfig && nextLevelConfig.cost !== Infinity) { upgradeBtn.textContent = `升級 ($${nextLevelConfig.cost})`; upgradeBtn.classList.toggle('disabled', battleState.money < nextLevelConfig.cost); } else { upgradeBtn.textContent = '已滿級'; upgradeBtn.classList.add('disabled'); } document.querySelectorAll('.deploy-button').forEach(btn => { btn.classList.toggle('disabled', battleState.money < parseInt(btn.dataset.cost)); }); }
+    function updateBattleMoneyUI() { 
+        if (!battleState.isEndlessMode) {
+            document.querySelector('#money-level-display').innerHTML = `<span>錢包 Lv: ${battleState.moneyLevel + 1}</span>`;
+        }
+        const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; 
+        document.querySelector('#money-display').textContent = `金錢: $${battleState.money} / ${moneyConfig.max}`; 
+        const upgradeBtn = document.getElementById('upgrade-money-btn'); 
+        const nextLevelConfig = battleState.moneyLevelConfig[battleState.moneyLevel + 1]; 
+        if (nextLevelConfig && nextLevelConfig.cost !== Infinity) { 
+            upgradeBtn.textContent = `升級 ($${nextLevelConfig.cost})`; 
+            upgradeBtn.classList.toggle('disabled', battleState.money < nextLevelConfig.cost); 
+        } else { 
+            upgradeBtn.textContent = '已滿級'; 
+            upgradeBtn.classList.add('disabled'); 
+        } 
+        document.querySelectorAll('.deploy-button').forEach(btn => { 
+            btn.classList.toggle('disabled', battleState.money < parseInt(btn.dataset.cost)); 
+        }); 
+    }
     function handleUpgradeMoney() { const nextLevel = battleState.moneyLevel + 1; const nextLevelConfig = battleState.moneyLevelConfig[nextLevel]; if (nextLevelConfig) { const cost = nextLevelConfig.cost; if (battleState.money >= cost) { battleState.money -= cost; battleState.moneyLevel = nextLevel; updateBattleMoneyUI(); } } }
     function toggleBattleSpeed() { if (battleState.isVictoryRush) return; if (battleState.battleSpeed === 1) { battleState.battleSpeed = 2; document.getElementById('speed-toggle-btn').textContent = '2x'; } else { battleState.battleSpeed = 1; document.getElementById('speed-toggle-btn').textContent = '1x'; } }
     function createDamageTextEffect(targetElement, text, color) { const effect = document.createElement('div'); effect.className = 'damage-text'; effect.textContent = text; effect.style.color = color; const rect = targetElement.getBoundingClientRect(); const gameRect = document.getElementById('game-container').getBoundingClientRect(); effect.style.left = `${rect.left - gameRect.left + rect.width / 2 - 15}px`; effect.style.top = `${rect.top - gameRect.top + rect.height / 2 - 30}px`; document.getElementById('battlefield').appendChild(effect); setTimeout(() => effect.remove(), 800); }

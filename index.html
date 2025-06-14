@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>貓咪大亂鬥 V11.2 - 終極存檔修復</title>
+    <title>貓咪大亂鬥 V11.2</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -115,7 +115,26 @@
             <div id="player-units-tab" class="tab-content active collection-book-grid"></div>
             <div id="enemy-units-tab" class="tab-content collection-book-grid"></div>
         </div>
-        <div id="battle-screen" class="screen"> <button id="pause-btn">❚❚</button> <div id="battlefield"><div id="time-stop-overlay"></div></div> <div id="battle-ui"> <div id="battle-info-panel"> <div id="money-display"></div> <div id="money-level-display"> <div id="survival-timer"></div></div> <button id="upgrade-money-btn"></button> </div> <div id="deployment-bar"></div> <div id="battle-controls"> <button id="fire-cannon-btn" class="disabled"> <div id="cannon-charge-bar"></div> <span>💥</span> </button> <button id="speed-toggle-btn"></button> </div> </div> </div>
+        <div id="battle-screen" class="screen">
+            <div id="battle-top-info"></div>
+            <button id="pause-btn">❚❚</button>
+            <div id="battlefield"><div id="time-stop-overlay"></div></div>
+            <div id="battle-ui">
+                <div id="battle-info-panel">
+                    <div id="money-display"></div>
+                    <div id="money-level-display"></div>
+                    <button id="upgrade-money-btn"></button>
+                </div>
+                <div id="deployment-bar"></div>
+                <div id="battle-controls">
+                    <button id="fire-cannon-btn" class="disabled">
+                        <div id="cannon-charge-bar"></div>
+                        <span>💥</span>
+                    </button>
+                    <button id="speed-toggle-btn"></button>
+                </div>
+            </div>
+        </div>
         <div id="game-over-overlay" class="screen">
             <h2 id="game-over-title"></h2>
             <p id="game-over-reward"></p>

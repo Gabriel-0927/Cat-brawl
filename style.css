@@ -428,13 +428,35 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     background: linear-gradient(to top, #8e44ad, #a569bd);
     border-bottom-color: #6c3483;
 }
+#battle-top-info {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 10px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    min-width: 220px;
+}
+#money-level-display {
+    text-align: center;
+}
 #survival-timer {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     color: #f1c40f;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    margin: 4px 0;
-    display: none;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
+#endless-reward-display {
+    font-size: 14px;
+    color: #ecf0f1;
 }
 .quality-info-btn {
     width: 28px;
@@ -461,6 +483,13 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     width: 500px;
     max-width: 95vw;
     box-sizing: border-box;
+}
+#quality-info-modal-content h2,
+#quality-info-modal-content p {
+    flex-shrink: 0;
+}
+#quality-info-modal-content .modal-scroll-content {
+    flex-shrink: 1;
 }
 #quality-info-table, #quality-cost-table {
     display: flex;
@@ -528,13 +557,9 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
     cursor: not-allowed;
 }
 #quality-info-modal-content h2,
-#quality-info-modal-content p {
+#quality-info-modal-content p,
+#gacha-rates-modal-content h2,
+#gacha-rates-modal-content #gacha-rates-summary,
+#collection-detail-modal-content h2 {
     flex-shrink: 0;
-}
-#quality-info-modal-content .modal-scroll-content {
-    flex-shrink: 1;
-    flex-grow: 1;
-    min-height: 0;
-    overflow-y: auto;
-    padding-right: 15px;
 }
