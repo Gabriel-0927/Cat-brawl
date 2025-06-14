@@ -241,7 +241,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function makeScrollable(container) { container.classList.add('draggable-scroll'); container.addEventListener('wheel', (e) => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { return; } e.preventDefault(); container.scrollLeft += e.deltaY; }); let isDown = false; let startX; let scrollLeft; let isDragging = false; container.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isDown = true; isDragging = false; container.classList.add('active-drag'); startX = e.pageX - container.offsetLeft; scrollLeft = container.scrollLeft; }); const endDrag = () => { if (!isDown) return; isDown = false; container.classList.remove('active-drag'); }; container.addEventListener('mouseleave', endDrag); container.addEventListener('mouseup', endDrag); container.addEventListener('mousemove', (e) => { if (!isDown) return; e.preventDefault(); const x = e.pageX - container.offsetLeft; const walk = x - startX; if (Math.abs(walk) > 5) { isDragging = true; } if (isDragging) { container.scrollLeft = scrollLeft - walk; } }); container.addEventListener('click', (e) => { if (isDragging) { e.preventDefault(); e.stopPropagation(); } }, true); }
+    function makeScrollable(container) {
+        if (!container) return;
+        container.classList.add('draggable-scroll');
+    
+        container.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+                return;
+            }
+            e.preventDefault();
+            container.scrollLeft += e.deltaY;
+        });
+    
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        let isDragging = false;
+        let lastDragTime = 0;
+    
+        const start = (e) => {
+            isDown = true;
+            isDragging = false;
+            container.classList.add('active-drag');
+            startX = (e.pageX || e.touches[0].pageX) - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+            lastDragTime = Date.now();
+        };
+    
+        const move = (e) => {
+            if (!isDown) return;
+            
+            const x = (e.pageX || e.touches[0].pageX) - container.offsetLeft;
+            const walk = x - startX;
+            
+            if (Math.abs(walk) > 5) {
+                if (!isDragging) {
+                    isDragging = true;
+                }
+            }
+    
+            if (isDragging) {
+                e.preventDefault();
+                container.scrollLeft = scrollLeft - walk;
+            }
+        };
+    
+        const end = (e) => {
+            if (!isDown) return;
+            isDown = false;
+            container.classList.remove('active-drag');
+            if (isDragging && (Date.now() - lastDragTime) < 150) {
+               isDragging = false;
+            }
+        };
+    
+        container.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            start(e);
+        });
+        container.addEventListener('mousemove', move);
+        container.addEventListener('mouseup', end);
+        container.addEventListener('mouseleave', end);
+    
+        container.addEventListener('touchstart', start, { passive: false });
+        container.addEventListener('touchmove', move);
+        container.addEventListener('touchend', end);
+        container.addEventListener('touchcancel', end);
+    
+        container.addEventListener('click', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
+    }
+
     async function handleGachaPull(count, poolType, poolIndex = -1) { let config, rateUpUnits = []; if (poolType === 'normal') { config = POOL_CONFIG.normal; } else { const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool }; rateUpUnits = currentPool.rateUp; } const cost = count === 1 ? config.costSingle : config.costTen; if (playerState.catFood < cost) { showToast('貓罐頭不足！'); return; } document.getElementById('gacha-pull-1').disabled = true; document.getElementById('gacha-pull-10').disabled = true; updateMissionProgress('pull_gacha', count); playerState.catFood -= cost; const results = []; let highestRarity = 'N'; const rarityOrder = { N: 0, R: 1, SSR: 2, UR: 3 }; for (let i = 0; i < count; i++) { let rand = Math.random(), chosenRarity, cumulativeProb = 0; for (const rarity in RARITY_CONFIG) { cumulativeProb += RARITY_CONFIG[rarity].prob; if (rand < cumulativeProb) { chosenRarity = rarity; break; } } if (poolType === 'normal' && chosenRarity === 'UR') chosenRarity = 'SSR'; let unitId; const potentialRateUp = rateUpUnits.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); if (potentialRateUp.length > 0 && Math.random() < 0.5) { unitId = potentialRateUp[Math.floor(Math.random() * potentialRateUp.length)]; } else { const availableUnits = config.units.filter(id => ALL_UNITS[id] && ALL_UNITS[id].rarity === chosenRarity); unitId = availableUnits.length > 0 ? availableUnits[Math.floor(Math.random() * availableUnits.length)] : 'cat_basic'; } const isNew = initializeUnit(unitId); if (!isNew) { const conversion = DUPLICATE_CONVERSION[ALL_UNITS[unitId].rarity]; playerState.xp += conversion.xp; playerState.catFood += conversion.food; } results.push({ id: unitId, isNew: isNew }); if (rarityOrder[chosenRarity] > rarityOrder[highestRarity]) { highestRarity = chosenRarity; } } updateTopBar(); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; const gachaGate = document.getElementById('gacha-gate'); gachaGate.className = 'gacha-gate'; let waitTime = 1500; if (highestRarity === 'UR') { gachaGate.classList.add('ur-mode'); waitTime = 3000; } else if (highestRarity === 'SSR') { gachaGate.classList.add('ssr-mode'); waitTime = 2000; } document.getElementById('gacha-animation-overlay').style.display = 'flex'; await sleep(waitTime); document.getElementById('gacha-animation-overlay').style.display = 'none'; const container = document.getElementById('gacha-results'); container.innerHTML = ''; for (const result of results) { const resultContainer = document.createElement('div'); resultContainer.className = 'gacha-card-container'; const card = createUnitCard(result.id); const feedback = document.createElement('div'); feedback.className = 'gacha-card-feedback'; if (result.isNew) { feedback.classList.add('feedback-new'); feedback.textContent = 'NEW!'; } else { const conv = DUPLICATE_CONVERSION[ALL_UNITS[result.id].rarity]; feedback.classList.add('feedback-dupe'); feedback.textContent = `+${conv.xp} XP, +${conv.food}🥫`; } resultContainer.appendChild(card); resultContainer.appendChild(feedback); container.appendChild(resultContainer); const rarity = ALL_UNITS[result.id].rarity; if (rarity === 'SSR' || rarity === 'UR') { resultContainer.classList.add('rare-reveal-animation'); await sleep(800); } else { resultContainer.classList.add('reveal-animation'); await sleep(200); } } document.getElementById('gacha-pull-1').disabled = false; document.getElementById('gacha-pull-10').disabled = false; saveGame(); }
     
     function setupEventListeners() {
