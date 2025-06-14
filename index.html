@@ -90,7 +90,7 @@
             <div id="enchant-panel">
                 <div id="enchant-header">
                     <h2>魔法附魔</h2>
-                    <div id="enchant-stone-display" class="resource-display">💎 <span>0</span></div>
+                    <div id="enchant-stone-display" class="resource-display">💎 <span></span></div>
                 </div>
                 <p>使用魔法石永久強化你的貓咪！附魔等級越高，能力提升越顯著。</p>
                 <div id="enchant-unit-grid"></div>
@@ -128,8 +128,17 @@
         <div id="pause-overlay" class="screen"> <div class="modal-content" style="width: 300px;"> <h2 style="margin-top: 0;">遊戲暫停</h2> <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;"> <button id="resume-btn" class="hub-button">繼續遊戲</button> <button id="quit-battle-btn" class="hub-button">退出戰鬥</button> </div> </div> </div>
         <div id="gacha-animation-overlay"><div id="gacha-gate"></div></div>
         <div id="daily-modal-overlay" class="modal-overlay"> <div id="daily-modal-content" class="modal-content"> <button id="modal-close-btn" class="daily-modal-close">×</button> <div class="modal-tabs"> <button class="tab-button active" data-tab="login">登入獎勵</button> <button class="tab-button" data-tab="missions">每日任務</button> </div> <div id="login-tab" class="tab-content active"> <h3>7日登入獎勵</h3> <div id="login-rewards-grid"></div> </div> <div id="missions-tab" class="tab-content"> <h3>每日任務</h3> <div id="mission-list"></div> </div> </div> </div>
-        <div id="upgrade-modal-overlay" class="modal-overlay"> <div id="upgrade-modal-content" class="modal-content"> <button id="modal-close-btn" class="upgrade-modal-close">×</button> <h2 id="modal-unit-name"></h2> <div id="modal-unit-icon"></div> <div id="modal-stats"></div>
-                <button id="modal-upgrade-btn"></button> </div> </div>
+        <div id="upgrade-modal-overlay" class="modal-overlay">
+            <div id="upgrade-modal-content" class="modal-content">
+                <button id="modal-close-btn" class="upgrade-modal-close">×</button>
+                <h2 id="modal-unit-name"></h2>
+                <div class="modal-scroll-content">
+                    <div id="modal-unit-icon"></div>
+                    <div id="modal-stats"></div>
+                    <button id="modal-upgrade-btn" style="margin-top: 15px;"></button>
+                </div>
+            </div>
+        </div>
         <div id="settings-overlay" class="screen">
             <div id="settings-panel">
                 <h2>設定</h2>
@@ -161,16 +170,20 @@
                 <button id="modal-close-btn" class="gacha-rates-modal-close">×</button>
                 <h2 id="gacha-rates-title"></h2>
                 <div id="gacha-rates-summary"></div>
-                <div id="gacha-rates-details"></div>
+                <div class="modal-scroll-content">
+                    <div id="gacha-rates-details"></div>
+                </div>
             </div>
         </div>
         <div id="collection-detail-modal-overlay" class="modal-overlay">
             <div id="collection-detail-modal-content" class="modal-content">
                 <button id="modal-close-btn" class="collection-detail-modal-close">×</button>
                 <h2 id="modal-detail-unit-name"></h2>
-                <div id="modal-detail-unit-icon"></div>
-                <div id="modal-detail-stats"></div>
-                <div id="modal-detail-unit-desc"></div>
+                <div class="modal-scroll-content">
+                    <div id="modal-detail-unit-icon"></div>
+                    <div id="modal-detail-stats"></div>
+                    <div id="modal-detail-unit-desc"></div>
+                </div>
             </div>
         </div>
 
