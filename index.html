@@ -33,10 +33,26 @@
             <div id="hub-main-buttons">
                 <button id="go-to-stages-button" class="hub-button">出擊</button>
                 <button id="go-to-gacha-button" class="hub-button">貓咪轉蛋</button>
+                <button id="go-to-enchant-button" class="hub-button">魔法附魔</button>
                 <button id="go-to-menu-button" class="hub-button">選單</button>
             </div>
         </div>
-        <div id="stage-select-screen" class="screen"><button class="back-button" id="stage-back-button">返回</button><h2>選擇關卡</h2><div id="stage-list"></div></div>
+        <div id="stage-select-screen" class="screen">
+            <button class="back-button" id="stage-back-button">返回</button>
+            <div class="stage-select-header">
+                <h2>選擇關卡</h2>
+                <div class="stage-tabs">
+                    <button class="tab-button active" data-tab="main-stages">主線關卡</button>
+                    <button class="tab-button" data-tab="special-stages">特殊關卡</button>
+                </div>
+            </div>
+            <div id="main-stages" class="stage-list-container active">
+                <!-- 主線關卡會被動態加入這裡 -->
+            </div>
+            <div id="special-stages" class="stage-list-container">
+                <!-- 特殊關卡會被動態加入這裡 -->
+            </div>
+        </div>
         <div id="gacha-screen" class="screen">
             <button class="back-button" id="gacha-main-back-button">返回</button>
             <div id="gacha-pool-selection" class="gacha-view">
@@ -69,6 +85,17 @@
             </div>
         </div>
         <div id="collection-screen" class="screen"><button class="back-button" id="collection-back-button">返回</button><div id="deck-management-area"><div id="current-deck-container"><h3>目前隊伍 (<span id="deck-count">0</span>/<span id="deck-limit">0</span>)</h3><div id="current-deck-display"></div></div><div id="owned-units-container"><h3>我的貓咪 <button id="toggle-upgrade-mode-btn" title="切換編成/強化模式">🔧 強化</button></h3><div id="owned-units-grid"></div></div></div></div>
+        <div id="enchant-screen" class="screen">
+            <button class="back-button" id="enchant-back-button">返回</button>
+            <div id="enchant-panel">
+                <div id="enchant-header">
+                    <h2>魔法附魔</h2>
+                    <div id="enchant-stone-display" class="resource-display">💎 <span>0</span></div>
+                </div>
+                <p>使用魔法石永久強化你的貓咪！附魔等級越高，能力提升越顯著。</p>
+                <div id="enchant-unit-grid"></div>
+            </div>
+        </div>
         <div id="base-upgrade-screen" class="screen"> <button class="back-button" id="base-upgrade-back-button">返回</button> <div id="base-upgrade-panel"> <h2>基地強化 - 貓咪砲</h2> <p>使用XP強化貓咪砲，在戰鬥中給予敵人致命一擊！</p> <div id="cannon-stats-display" class="upgrade-stat-display"></div> <button id="upgrade-cannon-btn" class="hub-button"></button> </div> </div>
         <div id="treasure-screen" class="screen"> <button class="back-button" id="treasure-back-button">返回</button> <h2 style="position: absolute; top: 20px; color: #4e342e;">寶物庫</h2> <div id="treasure-grid"></div> </div>
         <div id="shop-screen" class="screen">
@@ -88,7 +115,7 @@
             <div id="player-units-tab" class="tab-content active collection-book-grid"></div>
             <div id="enemy-units-tab" class="tab-content collection-book-grid"></div>
         </div>
-        <div id="battle-screen" class="screen"> <button id="pause-btn">❚❚</button> <div id="battlefield"><div id="time-stop-overlay"></div></div> <div id="battle-ui"> <div id="battle-info-panel"> <div id="money-display"></div> <div id="money-level-display"></div> <button id="upgrade-money-btn"></button> </div> <div id="deployment-bar"></div> <div id="battle-controls"> <button id="fire-cannon-btn" class="disabled"> <div id="cannon-charge-bar"></div> <span>💥</span> </button> <button id="speed-toggle-btn"></button> </div> </div> </div>
+        <div id="battle-screen" class="screen"> <button id="pause-btn">❚❚</button> <div id="battlefield"><div id="time-stop-overlay"></div></div> <div id="battle-ui"> <div id="battle-info-panel"> <div id="money-display"></div> <div id="money-level-display"> <div id="survival-timer"></div></div> <button id="upgrade-money-btn"></button> </div> <div id="deployment-bar"></div> <div id="battle-controls"> <button id="fire-cannon-btn" class="disabled"> <div id="cannon-charge-bar"></div> <span>💥</span> </button> <button id="speed-toggle-btn"></button> </div> </div> </div>
         <div id="game-over-overlay" class="screen">
             <h2 id="game-over-title"></h2>
             <p id="game-over-reward"></p>
@@ -102,11 +129,6 @@
         <div id="gacha-animation-overlay"><div id="gacha-gate"></div></div>
         <div id="daily-modal-overlay" class="modal-overlay"> <div id="daily-modal-content" class="modal-content"> <button id="modal-close-btn" class="daily-modal-close">×</button> <div class="modal-tabs"> <button class="tab-button active" data-tab="login">登入獎勵</button> <button class="tab-button" data-tab="missions">每日任務</button> </div> <div id="login-tab" class="tab-content active"> <h3>7日登入獎勵</h3> <div id="login-rewards-grid"></div> </div> <div id="missions-tab" class="tab-content"> <h3>每日任務</h3> <div id="mission-list"></div> </div> </div> </div>
         <div id="upgrade-modal-overlay" class="modal-overlay"> <div id="upgrade-modal-content" class="modal-content"> <button id="modal-close-btn" class="upgrade-modal-close">×</button> <h2 id="modal-unit-name"></h2> <div id="modal-unit-icon"></div> <div id="modal-stats"></div>
-                <button id="modal-show-enchant-btn" class="hub-button" style="width: 100%; margin: 20px 0 5px 0; background: linear-gradient(145deg, #9b59b6, #8e44ad); border-bottom-color: #6c3483;">🪄 魔法附魔</button>
-                <div id="enchantment-section" style="display: none;">
-                    <h3>附魔詳情 <span id="enchant-modal-stone-count">💎 0</span></h3>
-                    <div id="enchant-stats-area"></div>
-                </div>
                 <button id="modal-upgrade-btn"></button> </div> </div>
         <div id="settings-overlay" class="screen">
             <div id="settings-panel">

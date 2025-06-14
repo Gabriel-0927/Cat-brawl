@@ -17,6 +17,26 @@ document.addEventListener('DOMContentLoaded', () => {
         11: { name: "異次元裂縫", background: 'bg-cosmic', enemyBaseHp: 250000, reward: { food: 4000, xp: 22000 }, enemies: [{ type: 'alien_doge', time: 2 }, { type: 'alien_doge', time: 4 }, { type: 'alien_doge', time: 6 }, { type: 'cyborg_snake', time: 15 }, { type: 'abyss_lord', time: 60 }], treasureDrop: { id: 'crystal_of_speed', chance: 0.1 }, stoneDrop: { chance: 1, amount: 20 } },
         12: { name: "終焉之刻", background: 'bg-volcano', enemyBaseHp: 400000, reward: { food: 8000, xp: 50000 }, enemies: [{ type: 'volcano_golem', time: 10 }, { type: 'dark_lord', time: 40 }, { type: 'abyss_lord', time: 80 }], treasureDrop: { id: 'orb_of_power', chance: 0.1 }, stoneDrop: { chance: 1, amount: 50 } }
     };
+    const SPECIAL_STAGE_CONFIG = {
+        'endless_1': {
+            name: "無盡迴廊",
+            background: 'bg-dark',
+            rewardPerSecond: { xp: 1, food: 0.1 }, // 每秒的獎勵
+            initialEnemies: ['doge', 'snake'], // 開場會出現的敵人種類
+            // 難度擴展設定
+            scalingTiers: [
+                { time: 60000,  newEnemies: ['bat'], spawnInterval: 8000 }, // 1分鐘後, 加入蝙蝠, 縮短出兵間隔
+                { time: 120000, newEnemies: ['bear'], spawnInterval: 7000, statMultiplier: 1.1 }, // 2分鐘後, 加入熊, 敵人屬性提升10%
+                { time: 240000, newEnemies: ['ghost', 'alien_doge'], spawnInterval: 6000, statMultiplier: 1.25 }, // 4分鐘後
+                { time: 480000, newEnemies: ['cyborg_snake', 'stone_golem'], spawnInterval: 5000, statMultiplier: 1.5 } // 8分鐘後
+            ],
+            boss: {
+                interval: 180000, // 每 3 分鐘 (180000 ms)
+                pool: ['volcano_golem', 'dark_lord', 'abyss_lord'], // BOSS 池
+                statMultiplierIncrement: 0.5 // 每次出現時，BOSS的額外屬性倍率增量
+            }
+        }
+    };
     const LIMITED_POOL_ROTATIONS = [ { name: "超古代勇者", icon: "🗿", desc: "傳說中的古代英雄們集結！", rateUp: ['cat_samurai', 'cat_king'], style: "background: linear-gradient(145deg, #c31432, #240b36);" }, { name: "鋼鐵軍團", icon: "⚙️", desc: "用未來科技粉碎敵人！", rateUp: ['cat_mecha', 'cat_gunslinger'], style: "background: linear-gradient(145deg, #757f9a, #d7dde8);" }, { name: "時空旅人", icon: "🌌", desc: "掌握時間與空間的神秘力量！", rateUp: ['cat_timelord', 'cat_magic'], style: "background: linear-gradient(145deg, #1e3c72, #2a5298);" }, { name: "聖光與女武神", icon: "✨", desc: "神聖的力量將淨化一切！", rateUp: ['cat_valkyrie', 'cat_healer'], style: "background: linear-gradient(145deg, #f7ff00, #db36a4);" }, { name: "淘金熱潮", icon: "💰", desc: "致富的機會來了！", rateUp: ['cat_miner', 'cat_axe'], style: "background: linear-gradient(145deg, #f1c40f, #f39c12);" }, { name: "天體奇觀", icon: "🔭", desc: "來自宇宙深處的未知力量！", rateUp: ['cat_cosmic_dragon', 'cat_bard'], style: "background: linear-gradient(145deg, #4b6cb7, #182848);" }, { name: "暗影奇襲", icon: "🌙", desc: "悄無聲息，一擊斃命！", rateUp: ['cat_assassin', 'cat_ninja'], style: "background: linear-gradient(145deg, #2c3e50, #4c5b6a);" }, { name: "神聖制裁", icon: "⚖️", desc: "以聖光之名，制裁邪惡！", rateUp: ['cat_paladin', 'cat_healer'], style: "background: linear-gradient(145deg, #e9e4f0, #d3cce3);" }, { name: "末日兵器", icon: "💥", desc: "絕對的破壞力，將一切化為灰燼。", rateUp: ['cat_demolitionist', 'cat_mecha'], style: "background: linear-gradient(145deg, #cb2d3e, #ef473a);" }, { name: "天神下凡", icon: "👑", desc: "傳說中的神祇降臨戰場！", rateUp: ['cat_sun_god', 'cat_timelord'], style: "background: linear-gradient(145deg, #ffdde1, #ee9ca7);" }, { name: "不死傳說", icon: "👻", desc: "來自深淵的黑暗力量，支配生死！", rateUp: ['cat_alchemist', 'cat_necromancer'], style: "background: linear-gradient(145deg, #434343, #000000);" }, { name: "傳說再臨", icon: "✨", desc: "神秘的新力量覺醒！", rateUp: ['cat_shaman', 'cat_behemoth'], style: "background: linear-gradient(145deg, #833ab4, #fd1d1d, #fcb045);" } ];
     const RARITY_CONFIG = { 'N': { prob: 0.55 }, 'R': { prob: 0.35 }, 'SSR': { prob: 0.08 }, 'UR': { prob: 0.02 }, };
     const POOL_CONFIG = { normal: { costSingle: 30, costTen: 270, units: Object.keys(ALL_UNITS).filter(id => !ALL_UNITS[id].isMinion && (['N', 'R'].includes(ALL_UNITS[id].rarity) || id === 'cat_king')) }, limited: { costSingle: 60, costTen: 540, units: Object.keys(ALL_UNITS).filter(id => !ALL_UNITS[id].isMinion) } };
@@ -27,11 +47,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const LOGIN_REWARDS = [ { type: 'xp', value: 500, icon: '🌟' }, { type: 'food', value: 50, icon: '🥫' }, { type: 'xp', value: 1000, icon: '🌟' }, { type: 'food', value: 100, icon: '🥫' }, { type: 'xp', value: 2000, icon: '🌟' }, { type: 'food', value: 150, icon: '🥫' }, { type: 'food', value: 300, icon: '🎁' } ];
     const MISSION_POOL = [ { id: 'win_stages', text: (n) => `通關 ${n} 次任意關卡`, target: 3, reward: { type: 'xp', value: 500 } }, { id: 'kill_enemies', text: (n) => `擊敗 ${n} 隻敵人`, target: 50, reward: { type: 'xp', value: 800 } }, { id: 'pull_gacha', text: (n) => `進行 ${n} 次轉蛋`, target: 5, reward: { type: 'food', value: 30 } }, { id: 'upgrade_unit', text: (n) => `升級貓咪 ${n} 次`, target: 1, reward: { type: 'xp', value: 300 } }, { id: 'spend_money', text: (n) => `在戰鬥中花費 $${n}`, target: 2000, reward: { type: 'food', value: 20 } }, ];
     const ENCHANTMENT_CONFIG = { maxLevel: 10, hpPerLevel: 0.02, atkPerLevel: 0.02, cost: { 'N': 1, 'R': 2, 'SSR': 5, 'UR': 10 } };
+    const QUALITY_CONFIG = {
+        tiers: [
+            { name: '普通', bonus: 1.0,  prob: 0.50, color: '#a0a0a0' },
+            { name: '優良', bonus: 1.02, prob: 0.30, color: '#2ecc71' },
+            { name: '稀有', bonus: 1.05, prob: 0.15, color: '#3498db' },
+            { name: '史詩', bonus: 1.10, prob: 0.04, color: '#9b59b6' },
+            { name: '傳說', bonus: 1.18, prob: 0.01, color: '#e67e22' }
+        ],
+        cost: { 'N': 10, 'R': 20, 'SSR': 50, 'UR': 100 }
+    };
     const COLLECTION_REWARD_AMOUNT = 5; 
     const SHOP_ITEMS = { 'xp_small': { name: 'XP包 (小)', icon: '🌟', desc: '一點點經驗值，用於應急。', cost: 100, reward: { type: 'xp', value: 1000 } }, 'xp_medium': { name: 'XP包 (中)', icon: '🌟', desc: '可觀的經驗值，加速強化。', cost: 450, reward: { type: 'xp', value: 5000 } }, 'xp_large': { name: 'XP包 (大)', icon: '🌟', desc: '大量的經驗值，讓你的隊伍突飛猛進！', cost: 800, reward: { type: 'xp', value: 10000 } }, 'stone_small': { name: '魔法石 (小)', icon: '💎', desc: '用於附魔的魔法石。', cost: 200, reward: { type: 'magicStones', value: 10 } }, 'stone_large': { name: '魔法石 (大)', icon: '💎', desc: '大量的魔法石，打造究極貓咪！', cost: 1000, reward: { type: 'magicStones', value: 60 } }, };
     
     // --- 遊戲狀態變數 ---
-    let playerState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() } };
+    let playerState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() }, specialStageRecords: {} };
     let battleState = {};
     let gameLoopId = null, gachaTimerIntervalId = null;
     let hasShownLoginReward = false;
@@ -117,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let loadedState = JSON.parse(foundSaveData);
                 loadedState = migrateSaveData(loadedState);
 
-                let freshState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() } };
+                let freshState = { catFood: 1000, xp: 500, magicStones: 0, unitLevels: {}, deck: [], settings: { volume: 0.3 }, catCannon: { level: 1 }, treasures: {}, lastLoginDate: null, loginStreak: 0, lastClaimedStreak: 0, dailyMissions: [], unlockedUnits: new Set(), seenEnemies: new Set(), collectionRewards: { units: new Set(), enemies: new Set() }, specialStageRecords: {} };
                 playerState = { ...freshState, ...loadedState };
                 playerState.unlockedUnits = new Set(loadedState.unlockedUnits || []);
                 playerState.seenEnemies = new Set(loadedState.seenEnemies || []);
@@ -129,13 +159,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 playerState.catCannon = { ...freshState.catCannon, ...loadedState.catCannon };
                 playerState.treasures = { ...loadedState.treasures };
                 playerState.dailyMissions = loadedState.dailyMissions || [];
+                playerState.specialStageRecords = loadedState.specialStageRecords || {};
                 
                 for (const unitId in playerState.unitLevels) {
                     if (typeof playerState.unitLevels[unitId] === 'number') {
                         playerState.unitLevels[unitId] = {
                             level: playerState.unitLevels[unitId],
-                            enchantments: { hp: 0, atk: 0 }
+                            enchantments: { hp: 0, atk: 0 },
+                            quality: 0
                         };
+                    }
+                    if (playerState.unitLevels[unitId].quality === undefined) {
+                        playerState.unitLevels[unitId].quality = 0;
                     }
                 }
                 if (!playerState.deck || playerState.deck.length === 0) {
@@ -278,6 +313,12 @@ document.addEventListener('DOMContentLoaded', () => {
         makeScrollable(document.getElementById('current-deck-display'));
         makeScrollable(document.getElementById('owned-units-grid'));
         makeScrollable(document.getElementById('deployment-bar'));
+
+        document.getElementById('go-to-enchant-button').addEventListener('click', () => {
+            renderEnchantScreen();
+            switchScreen('enchant-screen');
+        });
+        document.getElementById('enchant-back-button').addEventListener('click', () => switchScreen('hub-screen'));
     }
     
     function renderDeckEditor() {
@@ -322,12 +363,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showGachaRatesModal(poolType) { let poolConfig, poolUnits, poolName, rateUpUnits = []; const ratesSummary = document.getElementById('gacha-rates-summary'); const ratesDetails = document.getElementById('gacha-rates-details'); if (poolType === 'normal') { poolConfig = POOL_CONFIG.normal; poolName = '常駐池'; poolUnits = poolConfig.units; ratesSummary.innerHTML = `<span><strong>N:</strong> ${(RARITY_CONFIG.N.prob * 100).toFixed(1)}%</span> <span><strong>R:</strong> ${(RARITY_CONFIG.R.prob * 100).toFixed(1)}%</span> <span><strong>SSR:</strong> ${((RARITY_CONFIG.SSR.prob + RARITY_CONFIG.UR.prob) * 100).toFixed(1)}%</span>`; } else { const poolIndex = getCurrentLimitedPoolIndex(); poolConfig = LIMITED_POOL_ROTATIONS[poolIndex]; rateUpUnits = poolConfig.rateUp || []; poolName = poolConfig.name; poolUnits = POOL_CONFIG.limited.units; ratesSummary.innerHTML = `<span><strong>N:</strong> ${(RARITY_CONFIG.N.prob * 100).toFixed(1)}%</span> <span><strong>R:</strong> ${(RARITY_CONFIG.R.prob * 100).toFixed(1)}%</span> <span><strong>SSR:</strong> ${(RARITY_CONFIG.SSR.prob * 100).toFixed(1)}%</span> <span><strong>UR:</strong> ${(RARITY_CONFIG.UR.prob * 100).toFixed(1)}%</span>`; } document.getElementById('gacha-rates-title').textContent = `${poolName} - 機率詳情`; ratesDetails.innerHTML = ''; const unitsByRarity = { UR: [], SSR: [], R: [], N: [] }; poolUnits.forEach(unitId => { const unit = ALL_UNITS[unitId]; if (unit && unitsByRarity[unit.rarity]) { unitsByRarity[unit.rarity].push(unitId); } }); ['UR', 'SSR', 'R', 'N'].forEach(rarity => { if (unitsByRarity[rarity].length > 0) { let sectionHTML = `<h3>${rarity} 角色</h3><div class="rate-unit-grid">`; unitsByRarity[rarity].sort((aId, bId) => ALL_UNITS[aId].cost - ALL_UNITS[bId].cost).forEach(unitId => { const unit = ALL_UNITS[unitId]; const isRateUp = rateUpUnits.includes(unitId); sectionHTML += `<div class="rate-unit-item ${isRateUp ? 'rate-up' : ''}"><span class="icon">${unit.icon}</span><span class="name">${unit.name}</span></div>`; }); sectionHTML += `</div>`; ratesDetails.innerHTML += sectionHTML; } }); document.getElementById('gacha-rates-modal-overlay').style.display = 'flex'; }
     function hideGachaRatesModal() { document.getElementById('gacha-rates-modal-overlay').style.display = 'none'; }
-    function initializeUnit(unitId) { if (!playerState.unitLevels[unitId]) { playerState.unitLevels[unitId] = { level: 1, enchantments: { hp: 0, atk: 0 } }; if (playerState.deck.length < DECK_SIZE_LIMIT) { playerState.deck.push(unitId); } playerState.unlockedUnits.add(unitId); updateCollectionBookBadge(); return true; } return false; }
+    function initializeUnit(unitId) {
+        if (!playerState.unitLevels[unitId]) {
+            playerState.unitLevels[unitId] = { level: 1, enchantments: { hp: 0, atk: 0 }, quality: 0 };
+            if (playerState.deck.length < DECK_SIZE_LIMIT) {
+                playerState.deck.push(unitId);
+            }
+            playerState.unlockedUnits.add(unitId);
+            updateCollectionBookBadge();
+            return true;
+        }
+        return false;
+    }
     function handleDailyReset() { const today = new Date().toISOString().split('T')[0]; const lastLogin = playerState.lastLoginDate; hasShownLoginReward = false; if (today !== lastLogin) { const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]; if (lastLogin === yesterday) { playerState.loginStreak++; } else { playerState.loginStreak = 1; playerState.lastClaimedStreak = 0; } playerState.lastLoginDate = today; playerState.dailyMissions = []; const shuffledMissions = [...MISSION_POOL].sort(() => 0.5 - Math.random()); for (let i = 0; i < 3; i++) { const missionTemplate = shuffledMissions[i]; playerState.dailyMissions.push({ id: missionTemplate.id, progress: 0, target: missionTemplate.target, claimed: false, }); } saveGame(); } updateNotificationBadge(); }
     function updateMissionProgress(missionId, value) { if (!playerState.dailyMissions) return; const mission = playerState.dailyMissions.find(m => m.id === missionId && !m.claimed); if (mission) { mission.progress = Math.min(mission.target, mission.progress + value); saveGame(); updateNotificationBadge(); } }
     function updateNotificationBadge() { const hasClaimableMissions = playerState.dailyMissions.some(m => m.progress >= m.target && !m.claimed); const dailyBadge = document.querySelector('#go-to-daily-button .notification-badge'); if (dailyBadge) { dailyBadge.style.display = hasClaimableMissions ? 'flex' : 'none'; } }
     function resetGame() { if (confirm('您確定要刪除所有遊戲進度並重新開始嗎？此操作無法復原！')) { localStorage.removeItem(SAVE_KEY); PREVIOUS_SAVE_KEYS.forEach(key => localStorage.removeItem(key)); location.reload(); } }
-    function switchScreen(screenId) { const fullscreenBtn = document.getElementById('fullscreen-btn'); document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); const newScreen = document.getElementById(screenId); newScreen.classList.add('active'); const hasBackButton = newScreen.querySelector('.back-button'); const isStartScreen = screenId === 'start-screen'; if (hasBackButton || isStartScreen || screenId === 'battle-screen') { fullscreenBtn.style.display = 'none'; } else { fullscreenBtn.style.display = 'flex'; } if (screenId === 'hub-screen' && !hasShownLoginReward) { const today = new Date().toISOString().split('T')[0]; if (playerState.lastLoginDate === today && playerState.loginStreak > (playerState.lastClaimedStreak || 0)) { setTimeout(() => showDailyModal(true, 'login'), 500); } hasShownLoginReward = true; } }
+    
+    function switchScreen(screenId) {
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const newScreen = document.getElementById(screenId);
+        newScreen.classList.add('active');
+        const hasBackButton = newScreen.querySelector('.back-button');
+        const isStartScreen = screenId === 'start-screen';
+        if (hasBackButton || isStartScreen || screenId === 'battle-screen') {
+            fullscreenBtn.style.display = 'none';
+        } else {
+            fullscreenBtn.style.display = 'flex';
+        }
+
+        if (screenId === 'hub-screen') {
+            updateTopBar();
+            if (!hasShownLoginReward) {
+                const today = new Date().toISOString().split('T')[0];
+                if (playerState.lastLoginDate === today && playerState.loginStreak > (playerState.lastClaimedStreak || 0)) {
+                    setTimeout(() => showDailyModal(true, 'login'), 500);
+                }
+                hasShownLoginReward = true;
+            }
+        }
+    }
+
     function updateTopBar() { document.querySelector('#magic-stone-display span').textContent = playerState.magicStones; document.querySelector('#cat-food-display span').textContent = playerState.catFood; document.querySelector('#xp-display span').textContent = playerState.xp; }
     function getUnitDeployCost(unitId) { let cost = ALL_UNITS[unitId].cost; if (playerState.treasures['abyss_tentacle']) { cost = Math.round(cost * TREASURES['abyss_tentacle'].effect.value); } return cost; }
     
@@ -337,18 +414,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const base = ALL_UNITS[unitId];
         const level = unitData.level;
         const enchantments = unitData.enchantments || { hp: 0, atk: 0 };
+        const qualityLevel = unitData.quality || 0;
+        const qualityBonus = QUALITY_CONFIG.tiers[qualityLevel].bonus;
+
         let hpMultiplier = 1;
         if (playerState.treasures['forest_idol']) { hpMultiplier *= TREASURES['forest_idol'].effect.value; }
         let atkMultiplier = 1;
         if (playerState.treasures['plateau_relic']) { atkMultiplier *= TREASURES['plateau_relic'].effect.value; }
         let speedMultiplier = 1;
         if (playerState.treasures['crystal_of_speed']) { speedMultiplier *= TREASURES['crystal_of_speed'].effect.value; }
+        
         let hp = base.hp * (1 + (level - 1) * 0.1);
         let atk = base.atk * (1 + (level - 1) * 0.1);
         hp += base.hp * enchantments.hp * ENCHANTMENT_CONFIG.hpPerLevel;
         atk += base.atk * enchantments.atk * ENCHANTMENT_CONFIG.atkPerLevel;
+        
         hp *= hpMultiplier;
         atk *= atkMultiplier;
+        
+        hp *= qualityBonus;
+        atk *= qualityBonus;
+
         const speed = base.speed * speedMultiplier;
         return { ...base, cost: getUnitDeployCost(unitId), hp: Math.round(hp), atk: Math.round(atk), speed: speed, level, enchantments };
     }
@@ -358,11 +444,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function setVolume(volume) { playerState.settings.volume = volume; document.getElementById('bgm').volume = volume; saveGame(); }
     function showSettings(show) { document.getElementById('settings-overlay').style.display = show ? 'flex' : 'none'; if (show) { document.getElementById('volume-slider').value = playerState.settings.volume; } }
     function getCurrentLimitedPoolIndex() { const FIVE_MINUTES = 5 * 60 * 1000; return Math.floor(Date.now() / FIVE_MINUTES) % LIMITED_POOL_ROTATIONS.length; }
-    function showPoolSelection() { const poolIndex = getCurrentLimitedPoolIndex(); const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; const limitedPoolBtn = document.getElementById('limited-pool-btn'); limitedPoolBtn.style.cssText = currentPool.style; document.getElementById('limited-pool-title').textContent = currentPool.name; document.getElementById('limited-pool-icon').textContent = currentPool.icon; document.getElementById('limited-pool-desc').textContent = currentPool.desc; const rateupText = currentPool.rateUp.map(id => ALL_UNITS[id].name).join(' & '); document.getElementById('limited-pool-rateup').textContent = `UP: ${rateupText}`; limitedPoolBtn.onclick = () => showPullInterface('limited');
-document.getElementById('normal-pool-btn').onclick = () => showPullInterface('normal'); if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); updateGachaCountdown(); gachaTimerIntervalId = setInterval(updateGachaCountdown, 1000); document.getElementById('gacha-pull-interface').classList.remove('active'); document.getElementById('gacha-pool-selection').classList.add('active'); document.getElementById('gacha-results').innerHTML = ''; }
+    function showPoolSelection() { const poolIndex = getCurrentLimitedPoolIndex(); const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; const limitedPoolBtn = document.getElementById('limited-pool-btn'); limitedPoolBtn.style.cssText = currentPool.style; document.getElementById('limited-pool-title').textContent = currentPool.name; document.getElementById('limited-pool-icon').textContent = currentPool.icon; document.getElementById('limited-pool-desc').textContent = currentPool.desc; const rateupText = currentPool.rateUp.map(id => ALL_UNITS[id].name).join(' & '); document.getElementById('limited-pool-rateup').textContent = `UP: ${rateupText}`; limitedPoolBtn.onclick = () => showPullInterface('limited'); document.getElementById('normal-pool-btn').onclick = () => showPullInterface('normal'); if (gachaTimerIntervalId) clearInterval(gachaTimerIntervalId); updateGachaCountdown(); gachaTimerIntervalId = setInterval(updateGachaCountdown, 1000); document.getElementById('gacha-pull-interface').classList.remove('active'); document.getElementById('gacha-pool-selection').classList.add('active'); document.getElementById('gacha-results').innerHTML = ''; }
     function updateGachaCountdown() { const FIVE_MINUTES = 5 * 60 * 1000; const now = Date.now(); const timeIntoInterval = now % FIVE_MINUTES; const timeLeft = FIVE_MINUTES - timeIntoInterval; if (timeLeft <= 1100) { setTimeout(showPoolSelection, 1100); } const minutes = Math.floor(timeLeft / 60000); const seconds = Math.floor((timeLeft % 60000) / 1000); const countdownEl = document.getElementById('limited-pool-countdown'); if (countdownEl) { countdownEl.textContent = `刷新倒數: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; } }
-    function showPullInterface(poolType) { let config, title, poolIndex = -1; if (poolType === 'normal') { config = POOL_CONFIG.normal; title = '常駐池'; } else { poolIndex = getCurrentLimitedPoolIndex(); const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool, poolIndex }; title = currentPool.name; } document.getElementById('gacha-pull-title').textContent = title; const pull1Btn = document.getElementById('gacha-pull-1'); const pull10Btn = document.getElementById('gacha-pull-10'); pull1Btn.textContent = `單抽 (${config.costSingle}罐頭)`; pull10Btn.textContent = `十連抽 (${config.costTen}罐頭)`; pull1Btn.onclick = () => handleGachaPull(1, poolType, poolIndex);
-pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex);document.querySelector('#gacha-current-food span').textContent = playerState.catFood; document.getElementById('gacha-pool-selection').classList.remove('active'); document.getElementById('gacha-pull-interface').classList.add('active'); }
+    function showPullInterface(poolType) { let config, title, poolIndex = -1; if (poolType === 'normal') { config = POOL_CONFIG.normal; title = '常駐池'; } else { poolIndex = getCurrentLimitedPoolIndex(); const currentPool = LIMITED_POOL_ROTATIONS[poolIndex]; config = { ...POOL_CONFIG.limited, ...currentPool, poolIndex }; title = currentPool.name; } document.getElementById('gacha-pull-title').textContent = title; const pull1Btn = document.getElementById('gacha-pull-1'); const pull10Btn = document.getElementById('gacha-pull-10'); pull1Btn.textContent = `單抽 (${config.costSingle}罐頭)`; pull10Btn.textContent = `十連抽 (${config.costTen}罐頭)`; pull1Btn.onclick = () => handleGachaPull(1, poolType, poolIndex); pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex); document.querySelector('#gacha-current-food span').textContent = playerState.catFood; document.getElementById('gacha-pool-selection').classList.remove('active'); document.getElementById('gacha-pull-interface').classList.add('active'); }
     function updateUpgradeModeUI() { const btn = document.getElementById('toggle-upgrade-mode-btn'); const grid = document.getElementById('owned-units-grid'); btn.classList.toggle('active', isUpgradeMode); grid.classList.toggle('upgrade-mode-active', isUpgradeMode); const btnText = isUpgradeMode ? '🔧 編成' : '🔧 強化'; btn.innerHTML = btnText; const titleText = isUpgradeMode ? '切換為編成模式' : '切換為強化模式'; btn.setAttribute('title', titleText); }
     function handleDeckChange(unitId, action) { const isInDeck = playerState.deck.includes(unitId); if (action === 'toggle') { if (isInDeck) { playerState.deck = playerState.deck.filter(id => id !== unitId); } else if (playerState.deck.length < DECK_SIZE_LIMIT) { playerState.deck.push(unitId); } } else if (action === 'remove' && isInDeck) { playerState.deck = playerState.deck.filter(id => id !== unitId); } saveGame(); renderDeckEditor(); }
     function createUnitCard(unitId) { const unit = ALL_UNITS[unitId]; const unitData = playerState.unitLevels[unitId]; const card = document.createElement('div'); card.className = `unit-card rarity-${unit.rarity}`; card.dataset.unitId = unitId; card.innerHTML = `<div class="card-icon">${unit.icon}</div><div class="card-name">${unit.name}</div>`; if (unitData && unitData.level) { const levelDiv = document.createElement('div'); levelDiv.className = 'card-level'; let levelText = `Lv.${unitData.level}`; const totalEnchants = (unitData.enchantments?.hp || 0) + (unitData.enchantments?.atk || 0); if (totalEnchants > 0) { levelText += ` (+${totalEnchants})` } levelDiv.textContent = levelText; card.appendChild(levelDiv); } return card; }
@@ -376,54 +460,82 @@ pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex);document.quer
         const upgradeBtn = document.getElementById('modal-upgrade-btn');
         upgradeBtn.textContent = `升級 (花費 ${cost} XP)`;
         upgradeBtn.classList.toggle('disabled', playerState.xp < cost);
-        upgradeBtn.onclick = () => handleUpgradeUnit(unitId); // Use onclick to avoid stacking listeners
+        upgradeBtn.onclick = () => handleUpgradeUnit(unitId);
 
-        const enchantSection = document.getElementById('enchantment-section');
-        const showEnchantBtn = document.getElementById('modal-show-enchant-btn');
-        
-        // Reset on open
-        enchantSection.style.display = 'none';
-        showEnchantBtn.onclick = () => {
-            const isHidden = enchantSection.style.display === 'none';
-            enchantSection.style.display = isHidden ? 'block' : 'none';
-        };
-
-        renderEnchantmentSection(unitId);
         document.getElementById('upgrade-modal-overlay').style.display = 'flex';
     }
 
-    function renderEnchantmentSection(unitId) {
-        const unitData = playerState.unitLevels[unitId];
-        const unitRarity = ALL_UNITS[unitId].rarity;
-        const costPerEnchant = ENCHANTMENT_CONFIG.cost[unitRarity];
-        const enchantArea = document.getElementById('enchant-stats-area');
-        const canEnchantHp = unitData.enchantments.hp < ENCHANTMENT_CONFIG.maxLevel;
-        const canEnchantAtk = unitData.enchantments.atk < ENCHANTMENT_CONFIG.maxLevel;
-        const canAfford = playerState.magicStones >= costPerEnchant;
-        enchantArea.innerHTML = '';
-        document.getElementById('enchant-modal-stone-count').textContent = `💎 ${playerState.magicStones}`;
-
-        const hpRow = document.createElement('div');
-        hpRow.className = 'enchant-stat-row';
-        hpRow.innerHTML = `<span class="stat-name">生命附魔 (+${(unitData.enchantments.hp * ENCHANTMENT_CONFIG.hpPerLevel * 100).toFixed(0)}%)</span> <span class="stat-value">${unitData.enchantments.hp} / ${ENCHANTMENT_CONFIG.maxLevel}</span>`;
-        const hpBtn = document.createElement('button');
-        hpBtn.className = 'enchant-btn';
-        hpBtn.textContent = `+1 (${costPerEnchant}💎)`;
-        if (!canEnchantHp || !canAfford) { hpBtn.classList.add('disabled'); }
-        hpBtn.addEventListener('click', () => handleEnchant(unitId, 'hp'));
-        hpRow.appendChild(hpBtn);
-        enchantArea.appendChild(hpRow);
-
-        const atkRow = document.createElement('div');
-        atkRow.className = 'enchant-stat-row';
-        atkRow.innerHTML = `<span class="stat-name">攻擊附魔 (+${(unitData.enchantments.atk * ENCHANTMENT_CONFIG.atkPerLevel * 100).toFixed(0)}%)</span> <span class="stat-value">${unitData.enchantments.atk} / ${ENCHANTMENT_CONFIG.maxLevel}</span>`;
-        const atkBtn = document.createElement('button');
-        atkBtn.className = 'enchant-btn';
-        atkBtn.textContent = `+1 (${costPerEnchant}💎)`;
-        if (!canEnchantAtk || !canAfford) { atkBtn.classList.add('disabled'); }
-        atkBtn.addEventListener('click', () => handleEnchant(unitId, 'atk'));
-        atkRow.appendChild(atkBtn);
-        enchantArea.appendChild(atkRow);
+    function renderEnchantScreen() {
+        document.querySelector('#enchant-stone-display span').textContent = playerState.magicStones;
+        const grid = document.getElementById('enchant-unit-grid');
+        grid.innerHTML = '';
+    
+        const ownedUnits = Object.keys(playerState.unitLevels)
+            .sort((a, b) => {
+                const rarityOrder = { 'N': 0, 'R': 1, 'SSR': 2, 'UR': 3 };
+                const rarityA = ALL_UNITS[a].rarity;
+                const rarityB = ALL_UNITS[b].rarity;
+                if (rarityOrder[rarityB] !== rarityOrder[rarityA]) {
+                    return rarityOrder[rarityB] - rarityOrder[rarityA];
+                }
+                return getUnitDeployCost(a) - getUnitDeployCost(b);
+            });
+    
+        ownedUnits.forEach(unitId => {
+            const unit = ALL_UNITS[unitId];
+            const unitData = playerState.unitLevels[unitId];
+            const costPerEnchant = ENCHANTMENT_CONFIG.cost[unit.rarity];
+            const qualityRefineCost = QUALITY_CONFIG.cost[unit.rarity];
+            const currentQualityIndex = unitData.quality || 0;
+            const currentQuality = QUALITY_CONFIG.tiers[currentQualityIndex];
+            
+            const canAffordEnchant = playerState.magicStones >= costPerEnchant;
+            const canAffordRefine = playerState.magicStones >= qualityRefineCost;
+            
+            const card = document.createElement('div');
+            card.className = `enchant-card rarity-${unit.rarity}`;
+    
+            const canEnchantHp = unitData.enchantments.hp < ENCHANTMENT_CONFIG.maxLevel;
+            const canEnchantAtk = unitData.enchantments.atk < ENCHANTMENT_CONFIG.maxLevel;
+    
+            card.innerHTML = `
+                <div class="enchant-card-header">
+                    <div class="enchant-card-icon">${unit.icon}</div>
+                    <div class="enchant-card-name">${unit.name}</div>
+                </div>
+                <div class="enchant-stats-area">
+                    <div class="enchant-stat-row">
+                        <span class="stat-name">HP (+${(unitData.enchantments.hp * ENCHANTMENT_CONFIG.hpPerLevel * 100).toFixed(0)}%)</span>
+                        <span class="stat-value">${unitData.enchantments.hp}/${ENCHANTMENT_CONFIG.maxLevel}</span>
+                        <button class="enchant-btn ${(!canEnchantHp || !canAffordEnchant) ? 'disabled' : ''}" data-unit-id="${unitId}" data-stat="hp">+1 (${costPerEnchant}💎)</button>
+                    </div>
+                    <div class="enchant-stat-row">
+                        <span class="stat-name">ATK (+${(unitData.enchantments.atk * ENCHANTMENT_CONFIG.atkPerLevel * 100).toFixed(0)}%)</span>
+                        <span class="stat-value">${unitData.enchantments.atk}/${ENCHANTMENT_CONFIG.maxLevel}</span>
+                        <button class="enchant-btn ${(!canEnchantAtk || !canAffordEnchant) ? 'disabled' : ''}" data-unit-id="${unitId}" data-stat="atk">+1 (${costPerEnchant}💎)</button>
+                    </div>
+                </div>
+                <div class="enchant-quality-area">
+                    <div class="quality-display">
+                        潛在品質: <span style="color: ${currentQuality.color}; font-weight: bold;">【${currentQuality.name}】</span>
+                    </div>
+                    <button class="quality-refine-btn ${(!canAffordRefine || currentQualityIndex === QUALITY_CONFIG.tiers.length -1) ? 'disabled' : ''}" data-unit-id="${unitId}">潛能激發 (${qualityRefineCost}💎)</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    
+        grid.onclick = function(e) {
+            if (e.target.classList.contains('enchant-btn') && !e.target.classList.contains('disabled')) {
+                const unitId = e.target.dataset.unitId;
+                const stat = e.target.dataset.stat;
+                handleEnchant(unitId, stat);
+            }
+            if (e.target.classList.contains('quality-refine-btn') && !e.target.classList.contains('disabled')) {
+                const unitId = e.target.dataset.unitId;
+                handleQualityRefine(unitId);
+            }
+        };
     }
     
     function handleEnchant(unitId, statType) {
@@ -435,28 +547,151 @@ pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex);document.quer
             unitData.enchantments[statType]++;
             saveGame();
             updateTopBar();
-            // Refresh the same modal to show updated values
-            showUpgradeModal(unitId);
+            renderEnchantScreen();
         }
+    }
+
+    function handleQualityRefine(unitId) {
+        const unit = ALL_UNITS[unitId];
+        const unitData = playerState.unitLevels[unitId];
+        if (!unit || !unitData) return;
+    
+        const cost = QUALITY_CONFIG.cost[unit.rarity];
+        if (playerState.magicStones < cost) {
+            showToast("魔法石不足！");
+            return;
+        }
+    
+        playerState.magicStones -= cost;
+    
+        let rand = Math.random();
+        let cumulativeProb = 0;
+        let chosenQualityIndex = 0;
+    
+        for (let i = 0; i < QUALITY_CONFIG.tiers.length; i++) {
+            cumulativeProb += QUALITY_CONFIG.tiers[i].prob;
+            if (rand < cumulativeProb) {
+                chosenQualityIndex = i;
+                break;
+            }
+        }
+    
+        const currentQualityIndex = unitData.quality || 0;
+        const chosenQuality = QUALITY_CONFIG.tiers[chosenQualityIndex];
+    
+        if (chosenQualityIndex > currentQualityIndex) {
+            unitData.quality = chosenQualityIndex;
+            showToast(`潛能激發成功！品質提升為【${chosenQuality.name}】！`);
+        } else {
+            showToast("潛能激發失敗，品質未提升。");
+        }
+    
+        saveGame();
+        updateTopBar();
+        renderEnchantScreen();
     }
 
     function closeUpgradeModal() { document.getElementById('upgrade-modal-overlay').style.display = 'none'; renderDeckEditor(); }
     async function handleUpgradeUnit(unitId) { const unitData = playerState.unitLevels[unitId]; const cost = getUpgradeCost(unitData.level); if (playerState.xp < cost) return; updateMissionProgress('upgrade_unit', 1); playerState.xp -= cost; unitData.level++; saveGame(); updateTopBar(); const modalContent = document.getElementById('upgrade-modal-content'); const effect = document.createElement('div'); effect.id = 'modal-level-up-effect'; effect.textContent = 'LVL UP!'; modalContent.appendChild(effect); setTimeout(() => effect.remove(), 1000); await sleep(100); showUpgradeModal(unitId); }
-    function renderStageSelect() { const list = document.getElementById('stage-list'); list.innerHTML = ''; for (const stageId in STAGE_CONFIG) { const stage = STAGE_CONFIG[stageId]; const btn = document.createElement('button'); btn.className = 'stage-button'; let dropsHTML = ''; const dropItems = []; if (stage.treasureDrop) { const treasure = TREASURES[stage.treasureDrop.id]; const isOwned = playerState.treasures[stage.treasureDrop.id]; dropItems.push(`${isOwned ? '✅' : '❓'} ${treasure.icon}`); } if (stage.stoneDrop) { dropItems.push(`💎x${stage.stoneDrop.amount}`); } if (dropItems.length > 0) { dropsHTML = `<div class="stage-drops">${dropItems.join(' ')}</div>`; } btn.innerHTML = ` <div> <h3>${stageId}. ${stage.name}</h3> <div class="stage-reward">獎勵: ${stage.reward.food}🥫 ${stage.reward.xp}🌟</div> </div> ${dropsHTML} `; btn.addEventListener('click', () => startStage(stageId)); list.appendChild(btn); } }
+    
+    function renderStageSelect() {
+        const mainListContainer = document.getElementById('main-stages');
+        const specialListContainer = document.getElementById('special-stages');
+        mainListContainer.innerHTML = '';
+        specialListContainer.innerHTML = '';
+
+        for (const stageId in STAGE_CONFIG) {
+            const stage = STAGE_CONFIG[stageId];
+            const btn = document.createElement('button');
+            btn.className = 'stage-button';
+            let dropsHTML = '';
+            const dropItems = [];
+            if (stage.treasureDrop) {
+                const treasure = TREASURES[stage.treasureDrop.id];
+                const isOwned = playerState.treasures[stage.treasureDrop.id];
+                dropItems.push(`${isOwned ? '✅' : '❓'} ${treasure.icon}`);
+            }
+            if (stage.stoneDrop) {
+                dropItems.push(`💎x${stage.stoneDrop.amount}`);
+            }
+            if (dropItems.length > 0) {
+                dropsHTML = `<div class="stage-drops">${dropItems.join(' ')}</div>`;
+            }
+            btn.innerHTML = ` <div> <h3>${stageId}. ${stage.name}</h3> <div class="stage-reward">獎勵: ${stage.reward.food}🥫 ${stage.reward.xp}🌟</div> </div> ${dropsHTML} `;
+            btn.addEventListener('click', () => startStage(stageId, 'main'));
+            mainListContainer.appendChild(btn);
+        }
+
+        for (const stageId in SPECIAL_STAGE_CONFIG) {
+            const stage = SPECIAL_STAGE_CONFIG[stageId];
+            const btn = document.createElement('button');
+            btn.className = 'stage-button special';
+            
+            const record = playerState.specialStageRecords[stageId] || 0;
+            let recordText = '無紀錄';
+            if (record > 0) {
+                const minutes = Math.floor(record / 60);
+                const seconds = record % 60;
+                recordText = `最高紀錄: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            btn.innerHTML = `
+                <div>
+                    <h3>${stage.name}</h3>
+                    <div class="stage-reward">獎勵: 根據存活時間</div>
+                    <div class="stage-drops" style="margin-top: 8px; background: rgba(255,255,255,0.2);">${recordText}</div>
+                </div>
+                <div class="stage-drops">⚔️ 無盡</div>
+            `;
+            btn.addEventListener('click', () => startStage(stageId, 'special'));
+            specialListContainer.appendChild(btn);
+        }
+
+        const stageScreen = document.getElementById('stage-select-screen');
+        const tabs = stageScreen.querySelectorAll('.tab-button');
+        const containers = stageScreen.querySelectorAll('.stage-list-container');
+        tabs.forEach(tab => {
+            tab.onclick = () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const targetId = tab.dataset.tab;
+                containers.forEach(c => {
+                    c.classList.toggle('active', c.id === targetId);
+                });
+            };
+        });
+    }
+
     function renderTreasureScreen() { const grid = document.getElementById('treasure-grid'); grid.innerHTML = ''; for (const treasureId in TREASURES) { const treasure = TREASURES[treasureId]; const isOwned = playerState.treasures[treasureId]; const card = document.createElement('div'); card.className = `treasure-card ${isOwned ? 'owned' : ''}`; let ownedTag = isOwned ? '<div class="treasure-owned-tag">已獲得</div>' : ''; card.innerHTML = ` ${ownedTag} <div class="treasure-icon">${treasure.icon}</div> <div class="treasure-name">${treasure.name}</div> <div class="treasure-desc">${treasure.desc}</div> `; grid.appendChild(card); } }
-    function renderBaseUpgradeScreen() { const cannonLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[cannonLevel - 1]; const nextStats = CANNON_CONFIG[cannonLevel]; const display = document.getElementById('cannon-stats-display'); const upgradeBtn = document.getElementById('upgrade-cannon-btn'); let statsHTML = ` <div class="stat-block">等級: ${currentStats.level}</div> <div class="stat-block">傷害: ${currentStats.damage}</div> <div class="stat-block">擊退: ${currentStats.knockback}</div> <div class="stat-block">充能: ${currentStats.chargeTimeSec}s</div> `; if (nextStats && currentStats.upgradeCost !== Infinity) { statsHTML += ` <div class="stat-block arrow">→</div> <div class="stat-block" style="color:#2ecc71">Lv.${nextStats.level}</div> `; upgradeBtn.textContent = `升級 (花費 ${currentStats.upgradeCost} XP)`; upgradeBtn.classList.toggle('disabled', playerState.xp < currentStats.upgradeCost); upgradeBtn.addEventListener('click', handleUpgradeCannon); } else { upgradeBtn.textContent = '已達最高等級'; upgradeBtn.classList.add('disabled'); } display.innerHTML = statsHTML; }
+    function renderBaseUpgradeScreen() { const cannonLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[cannonLevel - 1]; const nextStats = CANNON_CONFIG[cannonLevel]; const display = document.getElementById('cannon-stats-display'); const upgradeBtn = document.getElementById('upgrade-cannon-btn'); let statsHTML = ` <div class="stat-block">等級: ${currentStats.level}</div> <div class="stat-block">傷害: ${currentStats.damage}</div> <div class="stat-block">擊退: ${currentStats.knockback}</div> <div class="stat-block">充能: ${currentStats.chargeTimeSec}s</div> `; if (nextStats && currentStats.upgradeCost !== Infinity) { statsHTML += ` <div class="stat-block arrow">→</div> <div class="stat-block" style="color:#2ecc71">Lv.${nextStats.level}</div> `; upgradeBtn.textContent = `升級 (花費 ${currentStats.upgradeCost} XP)`; upgradeBtn.onclick = handleUpgradeCannon; } else { upgradeBtn.textContent = '已達最高等級'; upgradeBtn.classList.add('disabled'); } display.innerHTML = statsHTML; }
     function handleUpgradeCannon() { const currentLevel = playerState.catCannon.level; const currentStats = CANNON_CONFIG[currentLevel - 1]; if (playerState.xp >= currentStats.upgradeCost) { playerState.xp -= currentStats.upgradeCost; playerState.catCannon.level++; saveGame(); updateTopBar(); renderBaseUpgradeScreen(); } else { alert('XP 不足！'); } }
     
-    function startStage(stageId) {
+    function startStage(stageId, type = 'main') {
         if (playerState.deck.length === 0) {
             alert("隊伍中沒有任何貓咪！請先到「隊伍編成」畫面設定隊伍。");
             return;
         }
-        const stage = STAGE_CONFIG[stageId];
+    
+        let stage, isEndless = (type === 'special');
+        const survivalTimer = document.getElementById('survival-timer');
+    
+        if (isEndless) {
+            stage = SPECIAL_STAGE_CONFIG[stageId];
+            if (survivalTimer) {
+                survivalTimer.style.display = 'block';
+                survivalTimer.textContent = '存活時間: 00:00';
+            }
+        } else {
+            stage = STAGE_CONFIG[stageId];
+            if (survivalTimer) {
+                survivalTimer.style.display = 'none';
+            }
+        }
+    
         let cannonLevelData = { ...CANNON_CONFIG[playerState.catCannon.level - 1] };
         let moneyConfig = JSON.parse(JSON.stringify(MONEY_LEVEL_CONFIG));
         let playerBaseHp = 3000;
-
+    
         if (playerState.treasures['grass_amulet']) { moneyConfig.forEach(level => level.max += TREASURES['grass_amulet'].effect.value); }
         if (playerState.treasures['cave_crystal']) { moneyConfig.forEach(level => level.rate = Math.round(level.rate * TREASURES['cave_crystal'].effect.value)); }
         if (playerState.treasures['volcano_heart']) { cannonLevelData.chargeTimeSec *= TREASURES['volcano_heart'].effect.value; }
@@ -464,7 +699,47 @@ pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex);document.quer
         if (playerState.treasures['steel_blueprint']) { cannonLevelData.damage = Math.round(cannonLevelData.damage * TREASURES['steel_blueprint'].effect.value); }
         if (playerState.treasures['orb_of_power']) { cannonLevelData.knockback = Math.round(cannonLevelData.knockback * TREASURES['orb_of_power'].effect.value); }
         
-        battleState = { stageId, nextInstanceId: 0, moneyLevel: 0, money: 200, playerBaseHp: playerBaseHp, maxPlayerBaseHp: playerBaseHp, enemyBaseHp: stage.enemyBaseHp, maxEnemyBaseHp: stage.enemyBaseHp, playerUnits: [], enemyUnits: [], enemySpawnQueue: stage.enemies.map(e => ({ ...e, time: e.time * 1000 })).sort((a, b) => a.time - b.time), isGameOver: false, battleSpeed: 1, lastFrameTime: performance.now(), gameTime: 0, isPaused: false, catCannonData: cannonLevelData, catCannonMaxCharge: cannonLevelData.chargeTimeSec * 1000, catCannonCharge: 0, moneyLevelConfig: moneyConfig, totalMoneySpent: 0, enemiesKilled: 0, isVictoryRush: false, };
+        battleState = { 
+            stageId, 
+            stageType: type,
+            isEndlessMode: isEndless,
+            nextInstanceId: 0, 
+            moneyLevel: 0, 
+            money: 200, 
+            playerBaseHp: playerBaseHp, 
+            maxPlayerBaseHp: playerBaseHp, 
+            enemyBaseHp: isEndless ? Infinity : stage.enemyBaseHp, 
+            maxEnemyBaseHp: isEndless ? Infinity : stage.enemyBaseHp, 
+            playerUnits: [], 
+            enemyUnits: [], 
+            enemySpawnQueue: isEndless ? [] : stage.enemies.map(e => ({ ...e, time: e.time * 1000 })).sort((a, b) => a.time - b.time), 
+            isGameOver: false, 
+            battleSpeed: 1, 
+            lastFrameTime: performance.now(), 
+            gameTime: 0, 
+            isPaused: false, 
+            catCannonData: cannonLevelData, 
+            catCannonMaxCharge: cannonLevelData.chargeTimeSec * 1000, 
+            catCannonCharge: 0, 
+            moneyLevelConfig: moneyConfig, 
+            totalMoneySpent: 0, 
+            enemiesKilled: 0, 
+            isVictoryRush: false,
+        };
+    
+        if (isEndless) {
+            battleState.endless = {
+                config: stage,
+                currentTierIndex: -1,
+                nextSpawnTime: 5000,
+                spawnPool: [...stage.initialEnemies],
+                statMultiplier: 1,
+                spawnInterval: 12000,
+                nextBossTime: stage.boss ? stage.boss.interval : Infinity,
+                bossSpawnCount: 0
+            };
+        }
+        
         const speedBtn = document.getElementById('speed-toggle-btn');
         speedBtn.textContent = '1x';
         speedBtn.disabled = false;
@@ -479,11 +754,170 @@ pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex);document.quer
 
     function setupBattlefield() { document.getElementById('battlefield').innerHTML = `<div id="time-stop-overlay"></div><div id="player-base" class="base"><div class="base-icon">🏰</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div><div id="enemy-base" class="base"><div class="base-icon">🏯</div><div class="health-bar"><div class="health-bar-inner" style="width:100%"></div></div></div>`; updateDeploymentBar(); updateBattleMoneyUI(); updateBaseHealth(); }
     function updateDeploymentBar() { const bar = document.getElementById('deployment-bar'); bar.innerHTML = ''; const sortedDeck = [...playerState.deck].sort((a, b) => getUnitDeployCost(a) - getUnitDeployCost(b)); sortedDeck.forEach(unitId => { const unitData = playerState.unitLevels[unitId]; const unit = ALL_UNITS[unitId]; const cost = getUnitDeployCost(unitId); const btn = document.createElement('button'); btn.className = 'deploy-button'; btn.dataset.cost = cost; btn.innerHTML = `<div class="card-level" style="font-size:10px;top:2px;right:2px;">Lv.${unitData.level}</div><div class="card-icon" style="font-size:30px;">${unit.icon}</div><div style="font-size:12px; font-weight:bold;">${unit.name}</div><div class="deploy-cost" style="font-size:14px;">$${cost}</div>`; btn.addEventListener('click', () => deployUnit(unitId)); bar.appendChild(btn); }); }
-    function gameLoop(currentTime) { if (battleState.isGameOver || battleState.isPaused) return; const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed; battleState.lastFrameTime = currentTime; battleState.gameTime += deltaTime; const canStartVictoryRush = battleState.enemySpawnQueue.length === 0 && battleState.enemyUnits.length === 0; if (canStartVictoryRush && !battleState.isVictoryRush) { battleState.isVictoryRush = true; battleState.battleSpeed = 4; const speedBtn = document.getElementById('speed-toggle-btn'); speedBtn.textContent = '4x'; speedBtn.disabled = true; showToast('攻城開始！'); } const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; if (!battleState.lastMoneyUpdate || battleState.gameTime - battleState.lastMoneyUpdate > 1000) { battleState.money = Math.min(moneyConfig.max, battleState.money + moneyConfig.rate); battleState.lastMoneyUpdate = battleState.gameTime; updateBattleMoneyUI(); } if (battleState.catCannonCharge < battleState.catCannonMaxCharge) { battleState.catCannonCharge += deltaTime; updateCannonUI(); } if (battleState.enemySpawnQueue.length > 0 && battleState.gameTime >= battleState.enemySpawnQueue[0].time) { const enemyToSpawn = battleState.enemySpawnQueue.shift(); spawnUnit(enemyToSpawn.type, 'enemy'); } const allUnits = [...battleState.playerUnits, ...battleState.enemyUnits]; for (const unit of allUnits) { const unitData = unit.team === 'player' ? getUnitStats(unit.id) : (ALL_UNITS[unit.id] || ENEMY_UNITS[unit.id]); if (unit.cursedUntil && currentTime < unit.cursedUntil) { unit.element.classList.add('cursed'); }  else if (unit.cursedUntil) { unit.cursedUntil = null; unit.element.classList.remove('cursed'); } if (unitData.lifeSpan && currentTime - unit.spawnTime > unitData.lifeSpan) { removeUnit(unit); continue; } unit.element.classList.remove('buffed', 'weakened', 'poisoned'); if (unit.buffUntil && currentTime < unit.buffUntil) { unit.element.classList.add('buffed'); } if (unit.weakenUntil && currentTime < unit.weakenUntil) { unit.element.classList.add('weakened'); } if (unit.poisonUntil && currentTime < unit.poisonUntil) { unit.element.classList.add('poisoned'); if (!unit.lastPoisonTick || currentTime - unit.lastPoisonTick > 1000) { dealDamage(unit, unit.poisonDamage, false, null, {}, currentTime); unit.lastPoisonTick = currentTime; } } else if (unit.poisonUntil) { unit.poisonUntil = null; unit.poisonDamage = null; } if (unit.frozenUntil && currentTime < unit.frozenUntil) { unit.element.classList.add('frozen'); continue; } else { unit.element.classList.remove('frozen'); unit.frozenUntil = null; } const actionInterval = (unitData.attackInterval || 1500) / battleState.battleSpeed; if (!unit.lastActionTime || currentTime - unit.lastActionTime > actionInterval) { let currentTarget = findUnitByInstanceId(unit.currentTargetId); if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) { unit.currentTargetId = null; const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits; let closestTarget = null, minDistance = Infinity; potentialTargets.forEach(target => { const distance = Math.abs(unit.x - target.x); if (distance <= unitData.range && distance < minDistance) { minDistance = distance; closestTarget = target; } }); if (closestTarget) { unit.currentTargetId = closestTarget.instanceId; currentTarget = closestTarget; } } if (currentTarget) { unit.isMoving = false; attack(unit, currentTarget, unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits, unitData, currentTime); } else { unit.isMoving = true; const basePos = unit.team === 'player' ? 700 : 100; if (Math.abs(unit.x - basePos) <= unitData.range) { unit.isMoving = false; attackBase(unit, unit.team === 'player' ? 'enemy' : 'player', unitData, currentTime); } } if (unitData.heal) { const healTargets = battleState.playerUnits.filter(p => p !== unit && p.hp < p.maxHp && Math.abs(p.x - unit.x) <= unitData.range); if (healTargets.length > 0) { unit.lastActionTime = currentTime; healTargets.forEach(target => { target.hp = Math.min(target.maxHp, target.hp + unitData.heal); createHealEffect(target.element, unitData.heal); updateUnitHealth(target); }); } } if (unitData.attackBuff) { const buffTargets = battleState.playerUnits.filter(p => p !== unit && Math.abs(p.x - unit.x) <= unitData.attackBuff.radius); if (buffTargets.length > 0) { unit.lastActionTime = currentTime; buffTargets.forEach(target => { target.buffUntil = currentTime + unitData.attackBuff.duration; target.buffMultiplier = unitData.attackBuff.multiplier; }); } } } if (unit.isMoving) { const speed = unitData.speed, direction = unit.team === 'player' ? 1 : -1; unit.x += speed * direction * (deltaTime / 16.67); } } updateUnitsPosition(); if (battleState.playerBaseHp <= 0) endGame(false); if (battleState.enemyBaseHp <= 0) endGame(true); if (!battleState.isGameOver) gameLoopId = requestAnimationFrame(gameLoop); }
+    
+    function gameLoop(currentTime) {
+        if (battleState.isGameOver || battleState.isPaused) return;
+        const deltaTime = (currentTime - battleState.lastFrameTime) * battleState.battleSpeed;
+        battleState.lastFrameTime = currentTime;
+        battleState.gameTime += deltaTime;
+        
+        const canStartVictoryRush = !battleState.isEndlessMode && battleState.enemySpawnQueue.length === 0 && battleState.enemyUnits.length === 0;
+        if (canStartVictoryRush && !battleState.isVictoryRush) { 
+            battleState.isVictoryRush = true; 
+            battleState.battleSpeed = 4; 
+            const speedBtn = document.getElementById('speed-toggle-btn'); 
+            speedBtn.textContent = '4x'; 
+            speedBtn.disabled = true; 
+            showToast('攻城開始！'); 
+        }
+        
+        const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; 
+        if (!battleState.lastMoneyUpdate || battleState.gameTime - battleState.lastMoneyUpdate > 1000) { 
+            battleState.money = Math.min(moneyConfig.max, battleState.money + moneyConfig.rate); 
+            battleState.lastMoneyUpdate = battleState.gameTime; 
+            updateBattleMoneyUI(); 
+        }
+        
+        if (battleState.catCannonCharge < battleState.catCannonMaxCharge) { 
+            battleState.catCannonCharge += deltaTime; 
+            updateCannonUI(); 
+        }
+        
+        if (battleState.isEndlessMode) {
+            const endless = battleState.endless;
+            if (!endless) return;
+    
+            const survivalTimer = document.getElementById('survival-timer');
+            if (survivalTimer) {
+                const survivalTime = Math.floor(battleState.gameTime / 1000);
+                const minutes = Math.floor(survivalTime / 60);
+                const seconds = survivalTime % 60;
+                survivalTimer.textContent = `存活時間: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+    
+            const nextTier = endless.config.scalingTiers[endless.currentTierIndex + 1];
+            if (nextTier && battleState.gameTime >= nextTier.time) {
+                endless.currentTierIndex++;
+                endless.spawnPool.push(...nextTier.newEnemies);
+                endless.spawnInterval = nextTier.spawnInterval;
+                if(nextTier.statMultiplier) endless.statMultiplier = nextTier.statMultiplier;
+                showToast(`難度提升！新敵人出現！`);
+            }
+    
+            if (endless.config.boss && battleState.gameTime >= endless.nextBossTime) {
+                endless.bossSpawnCount++;
+                const bossPool = endless.config.boss.pool;
+                const bossId = bossPool[(endless.bossSpawnCount - 1) % bossPool.length];
+                const bossStatMultiplier = endless.statMultiplier + (endless.bossSpawnCount * endless.config.boss.statMultiplierIncrement);
+                
+                spawnUnit(bossId, 'enemy', 700, { statMultiplier: bossStatMultiplier });
+                showToast(`BOSS來襲: ${ENEMY_UNITS[bossId].name}!`);
+                
+                endless.nextBossTime = battleState.gameTime + endless.config.boss.interval;
+            }
+    
+            if (battleState.gameTime >= endless.nextSpawnTime) {
+                const enemyId = endless.spawnPool[Math.floor(Math.random() * endless.spawnPool.length)];
+                spawnUnit(enemyId, 'enemy', 700, { statMultiplier: endless.statMultiplier });
+                endless.nextSpawnTime = battleState.gameTime + endless.spawnInterval / battleState.battleSpeed;
+            }
+    
+        } else {
+            if (battleState.enemySpawnQueue.length > 0 && battleState.gameTime >= battleState.enemySpawnQueue[0].time) {
+                const enemyToSpawn = battleState.enemySpawnQueue.shift();
+                spawnUnit(enemyToSpawn.type, 'enemy');
+            }
+        }
+
+        const allUnits = [...battleState.playerUnits, ...battleState.enemyUnits]; for (const unit of allUnits) { const unitData = unit.team === 'player' ? getUnitStats(unit.id) : (ALL_UNITS[unit.id] || ENEMY_UNITS[unit.id]); if (unit.cursedUntil && currentTime < unit.cursedUntil) { unit.element.classList.add('cursed'); }  else if (unit.cursedUntil) { unit.cursedUntil = null; unit.element.classList.remove('cursed'); } if (unitData.lifeSpan && currentTime - unit.spawnTime > unitData.lifeSpan) { removeUnit(unit); continue; } unit.element.classList.remove('buffed', 'weakened', 'poisoned'); if (unit.buffUntil && currentTime < unit.buffUntil) { unit.element.classList.add('buffed'); } if (unit.weakenUntil && currentTime < unit.weakenUntil) { unit.element.classList.add('weakened'); } if (unit.poisonUntil && currentTime < unit.poisonUntil) { unit.element.classList.add('poisoned'); if (!unit.lastPoisonTick || currentTime - unit.lastPoisonTick > 1000) { dealDamage(unit, unit.poisonDamage, false, null, {}, currentTime); unit.lastPoisonTick = currentTime; } } else if (unit.poisonUntil) { unit.poisonUntil = null; unit.poisonDamage = null; } if (unit.frozenUntil && currentTime < unit.frozenUntil) { unit.element.classList.add('frozen'); continue; } else { unit.element.classList.remove('frozen'); unit.frozenUntil = null; } const actionInterval = (unitData.attackInterval || 1500) / battleState.battleSpeed; if (!unit.lastActionTime || currentTime - unit.lastActionTime > actionInterval) { let currentTarget = findUnitByInstanceId(unit.currentTargetId); if (!currentTarget || currentTarget.hp <= 0 || Math.abs(unit.x - currentTarget.x) > unitData.range) { unit.currentTargetId = null; const potentialTargets = unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits; let closestTarget = null, minDistance = Infinity; potentialTargets.forEach(target => { const distance = Math.abs(unit.x - target.x); if (distance <= unitData.range && distance < minDistance) { minDistance = distance; closestTarget = target; } }); if (closestTarget) { unit.currentTargetId = closestTarget.instanceId; currentTarget = closestTarget; } } if (currentTarget) { unit.isMoving = false; attack(unit, currentTarget, unit.team === 'player' ? battleState.enemyUnits : battleState.playerUnits, unitData, currentTime); } else { unit.isMoving = true; const basePos = unit.team === 'player' ? 700 : 100; if (Math.abs(unit.x - basePos) <= unitData.range) { unit.isMoving = false; attackBase(unit, unit.team === 'player' ? 'enemy' : 'player', unitData, currentTime); } } if (unitData.heal) { const healTargets = battleState.playerUnits.filter(p => p !== unit && p.hp < p.maxHp && Math.abs(p.x - unit.x) <= unitData.range); if (healTargets.length > 0) { unit.lastActionTime = currentTime; healTargets.forEach(target => { target.hp = Math.min(target.maxHp, target.hp + unitData.heal); createHealEffect(target.element, unitData.heal); updateUnitHealth(target); }); } } if (unitData.attackBuff) { const buffTargets = battleState.playerUnits.filter(p => p !== unit && Math.abs(p.x - unit.x) <= unitData.attackBuff.radius); if (buffTargets.length > 0) { unit.lastActionTime = currentTime; buffTargets.forEach(target => { target.buffUntil = currentTime + unitData.attackBuff.duration; target.buffMultiplier = unitData.attackBuff.multiplier; }); } } } if (unit.isMoving) { const speed = unitData.speed, direction = unit.team === 'player' ? 1 : -1; unit.x += speed * direction * (deltaTime / 16.67); } } 
+        updateUnitsPosition(); 
+        if (battleState.playerBaseHp <= 0) endGame(false); 
+        if (!battleState.isEndlessMode && battleState.enemyBaseHp <= 0) endGame(true); 
+        if (!battleState.isGameOver) gameLoopId = requestAnimationFrame(gameLoop); 
+    }
+
     function findUnitByInstanceId(id) { if (id == null) return null; return battleState.playerUnits.find(u => u.instanceId === id) || battleState.enemyUnits.find(u => u.instanceId === id); }
     function attack(attacker, mainTarget, allTargets, attackerData, currentTime) { attacker.lastActionTime = currentTime; const targetData = mainTarget.team === 'player' ? getUnitStats(mainTarget.id) : (ALL_UNITS[mainTarget.id] || ENEMY_UNITS[mainTarget.id]); if (targetData.dodgeChance && Math.random() < targetData.dodgeChance) { createDamageTextEffect(mainTarget.element, 'MISS', '#ffffff'); return; } if (targetData.blockChance && Math.random() < targetData.blockChance && !(attacker.cursedUntil && currentTime < attacker.cursedUntil)) { mainTarget.element.classList.add('blocking'); setTimeout(() => mainTarget.element.classList.remove('blocking'), 300); return; } if (attackerData.timeStop && Math.random() < attackerData.timeStop.chance) { showTimeStopEffect(); battleState.enemyUnits.forEach(enemy => enemy.frozenUntil = currentTime + attackerData.timeStop.duration); } if (attackerData.multiHit) { for (let i = 0; i < attackerData.multiHit.count; i++) { setTimeout(() => performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime), i * attackerData.multiHit.delay); } } else { performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime); } }
-    function performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime) { if (!mainTarget || mainTarget.hp <= 0) return; let actualAtk = attackerData.atk; if (attacker.buffUntil && currentTime < attacker.buffUntil) actualAtk *= attacker.buffMultiplier; let isCrit = false; if (attackerData.crit && Math.random() < attackerData.crit.chance && !(mainTarget.cursedUntil && currentTime < mainTarget.cursedUntil)) { actualAtk = Math.round(actualAtk * attackerData.crit.multiplier); isCrit = true; } const originalHp = mainTarget.hp; if (attackerData.splashRange) { allTargets.filter(t => t.hp > 0 && Math.abs(t.x - mainTarget.x) <= attackerData.splashRange).forEach(target => dealDamage(target, actualAtk, isCrit, attacker, attackerData, currentTime)); } else { dealDamage(mainTarget, actualAtk, isCrit, attacker, attackerData, currentTime); } const killedTarget = originalHp > 0 && mainTarget.hp <= 0; if (killedTarget && attackerData.moneyOnKill && Math.random() < attackerData.moneyOnKill.chance) { battleState.money = Math.min(battleState.moneyLevelConfig[battleState.moneyLevel].max, battleState.money + attackerData.moneyOnKill.amount); updateBattleMoneyUI(); } if (attackerData.waveAttack && Math.random() < attackerData.waveAttack.chance) { const direction = attacker.team === 'player' ? 1 : -1; const waveTargets = (attacker.team === 'player' ? battleState.enemyUnits : battleState.playerUnits).filter(u => direction * (u.x - attacker.x) > 0 && direction * (u.x - attacker.x) < attackerData.waveAttack.distance); waveTargets.forEach(target => setTimeout(() => dealDamage(target, actualAtk, false, attacker, attackerData, currentTime), 100)); } if (attackerData.freeze && Math.random() < attackerData.freeze.chance) { mainTarget.frozenUntil = currentTime + attackerData.freeze.duration; } if (attackerData.weaken && Math.random() < attackerData.weaken.chance) { mainTarget.weakenUntil = currentTime + attackerData.weaken.duration; mainTarget.weakenMultiplier = attackerData.weaken.multiplier; } if (attackerData.poison && Math.random() < attackerData.poison.chance) { mainTarget.poisonUntil = currentTime + attackerData.poison.duration; mainTarget.poisonDamage = attackerData.poison.damage; mainTarget.lastPoisonTick = currentTime; } if (attackerData.knockback && Math.random() < attackerData.knockback.chance) { mainTarget.x += (mainTarget.team === 'player' ? -30 : 30); } if (attackerData.curse && Math.random() < attackerData.curse.chance) { mainTarget.cursedUntil = currentTime + attackerData.curse.duration; } }
-    function dealDamage(target, damage, isCrit, attacker, attackerData, currentTime) { if (!target || target.hp <= 0) return; let finalDamage = damage; const targetData = target.team === 'player' ? getUnitStats(target.id) : (ALL_UNITS[target.id] || ENEMY_UNITS[target.id]); if (target.barrier > 0) { target.barrier--; target.element.classList.add('shielded'); setTimeout(() => target.element.classList.remove('shielded'), 300); return; } if (targetData.damageReduction && Math.random() < targetData.damageReduction.chance && !(attacker.cursedUntil && currentTime < attacker.cursedUntil)) { finalDamage *= (1 - targetData.damageReduction.multiplier); createDamageTextEffect(target.element, 'GUARD', '#87ceeb'); } if (target.weakenUntil && currentTime < target.weakenUntil) { finalDamage *= target.weakenMultiplier; } finalDamage = Math.round(finalDamage); target.hp -= finalDamage; createDamageTextEffect(target.element, finalDamage, isCrit ? '#ff4757' : '#fff'); if (target.hp <= 0) { if (attacker && attackerData.summonOnKill && Math.random() < attackerData.summonOnKill.chance) { spawnUnit(attackerData.summonOnKill.unitId, attacker.team, target.x); } if (target.team === 'enemy') { updateMissionProgress('kill_enemies', 1); } removeUnit(target); } else { updateUnitHealth(target); } }
+    
+    function performSingleHit(attacker, mainTarget, allTargets, attackerData, currentTime) {
+        if (!mainTarget || mainTarget.hp <= 0) return;
+        let actualAtk = attackerData.atk;
+        if (attacker.buffUntil && currentTime < attacker.buffUntil) {
+            actualAtk *= attacker.buffMultiplier;
+        }
+        if (attacker.weakenUntil && currentTime < attacker.weakenUntil) {
+            actualAtk *= attacker.weakenMultiplier;
+        }
+        let isCrit = false;
+        if (attackerData.crit && Math.random() < attackerData.crit.chance && !(mainTarget.cursedUntil && currentTime < mainTarget.cursedUntil)) {
+            actualAtk = Math.round(actualAtk * attackerData.crit.multiplier);
+            isCrit = true;
+        }
+        const originalHp = mainTarget.hp;
+        if (attackerData.splashRange) {
+            allTargets.filter(t => t.hp > 0 && Math.abs(t.x - mainTarget.x) <= attackerData.splashRange).forEach(target => dealDamage(target, actualAtk, isCrit, attacker, attackerData, currentTime));
+        } else {
+            dealDamage(mainTarget, actualAtk, isCrit, attacker, attackerData, currentTime);
+        }
+        const killedTarget = originalHp > 0 && mainTarget.hp <= 0;
+        if (killedTarget && attackerData.moneyOnKill && Math.random() < attackerData.moneyOnKill.chance) {
+            battleState.money = Math.min(battleState.moneyLevelConfig[battleState.moneyLevel].max, battleState.money + attackerData.moneyOnKill.amount);
+            updateBattleMoneyUI();
+        }
+        if (attackerData.waveAttack && Math.random() < attackerData.waveAttack.chance) {
+            const direction = attacker.team === 'player' ? 1 : -1;
+            const waveTargets = (attacker.team === 'player' ? battleState.enemyUnits : battleState.playerUnits).filter(u => direction * (u.x - attacker.x) > 0 && direction * (u.x - attacker.x) < attackerData.waveAttack.distance);
+            waveTargets.forEach(target => setTimeout(() => dealDamage(target, actualAtk, false, attacker, attackerData, currentTime), 100));
+        }
+        if (attackerData.freeze && Math.random() < attackerData.freeze.chance) {
+            mainTarget.frozenUntil = currentTime + attackerData.freeze.duration;
+        }
+        if (attackerData.weaken && Math.random() < attackerData.weaken.chance) {
+            mainTarget.weakenUntil = currentTime + attackerData.weaken.duration;
+            mainTarget.weakenMultiplier = attackerData.weaken.multiplier;
+        }
+        if (attackerData.poison && Math.random() < attackerData.poison.chance) {
+            mainTarget.poisonUntil = currentTime + attackerData.poison.duration;
+            mainTarget.poisonDamage = attackerData.poison.damage;
+            mainTarget.lastPoisonTick = currentTime;
+        }
+        if (attackerData.knockback && Math.random() < attackerData.knockback.chance) {
+            mainTarget.x += (mainTarget.team === 'player' ? -30 : 30);
+        }
+        if (attackerData.curse && Math.random() < attackerData.curse.chance) {
+            mainTarget.cursedUntil = currentTime + attackerData.curse.duration;
+        }
+    }
+    
+    function dealDamage(target, damage, isCrit, attacker, attackerData, currentTime) {
+        if (!target || target.hp <= 0) return;
+        let finalDamage = damage;
+        const targetData = target.team === 'player' ? getUnitStats(target.id) : (ALL_UNITS[target.id] || ENEMY_UNITS[target.id]);
+        if (target.barrier > 0) {
+            target.barrier--;
+            target.element.classList.add('shielded');
+            setTimeout(() => target.element.classList.remove('shielded'), 300);
+            return;
+        }
+        if (targetData.damageReduction && Math.random() < targetData.damageReduction.chance && !(attacker.cursedUntil && currentTime < attacker.cursedUntil)) {
+            finalDamage *= (1 - targetData.damageReduction.multiplier);
+            createDamageTextEffect(target.element, 'GUARD', '#87ceeb');
+        }
+        finalDamage = Math.round(finalDamage);
+        target.hp -= finalDamage;
+        createDamageTextEffect(target.element, finalDamage, isCrit ? '#ff4757' : '#fff');
+        if (target.hp <= 0) {
+            if (attacker && attackerData.summonOnKill && Math.random() < attackerData.summonOnKill.chance) {
+                spawnUnit(attackerData.summonOnKill.unitId, attacker.team, target.x);
+            }
+            if (target.team === 'enemy') {
+                updateMissionProgress('kill_enemies', 1);
+            }
+            removeUnit(target);
+        } else {
+            updateUnitHealth(target);
+        }
+    }
     
     function attackBase(attacker, baseTeam, attackerData, currentTime) {
         attacker.lastActionTime = currentTime;
@@ -491,6 +925,9 @@ pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex);document.quer
         let actualAtk = attackerData.atk;
         if (attacker.buffUntil && currentTime < attacker.buffUntil) {
             actualAtk *= attacker.buffMultiplier;
+        }
+        if (attacker.weakenUntil && currentTime < attacker.weakenUntil) {
+            actualAtk *= attacker.weakenMultiplier;
         }
         if (baseTeam === 'player' && playerState.treasures['celestial_shield']) {
             actualAtk *= TREASURES['celestial_shield'].effect.value;
@@ -506,22 +943,127 @@ pull10Btn.onclick = () => handleGachaPull(10, poolType, poolIndex);document.quer
     }
 
     function deployUnit(unitId) { const cost = getUnitDeployCost(unitId); if (battleState.money >= cost) { battleState.money -= cost; battleState.totalMoneySpent += cost; updateMissionProgress('spend_money', cost); updateBattleMoneyUI(); spawnUnit(unitId, 'player'); } }
-    function spawnUnit(id, team, spawnX = null) { const isPlayer = team === 'player'; const unitData = isPlayer ? getUnitStats(id) : (ALL_UNITS[id] || ENEMY_UNITS[id]); if (team === 'enemy' && !unitData.isMinion && !playerState.seenEnemies.has(id)) { playerState.seenEnemies.add(id); updateCollectionBookBadge(); saveGame(); } const element = document.createElement('div'); element.className = 'unit'; element.innerHTML = `<div>${unitData.icon}</div><div class="unit-health-bar"><div class="unit-health-bar-inner"></div></div>`; const unitInstance = { id, team, element, instanceId: battleState.nextInstanceId++, currentTargetId: null, hp: unitData.hp, maxHp: unitData.hp, x: spawnX !== null ? spawnX : (isPlayer ? 100 : 700), isMoving: true, spawnTime: performance.now(), barrier: unitData.barrier || 0, }; document.getElementById('battlefield').appendChild(element); if (isPlayer) battleState.playerUnits.push(unitInstance); else battleState.enemyUnits.push(unitInstance); }
+    
+    function spawnUnit(id, team, spawnX = null, options = {}) {
+        const isPlayer = team === 'player';
+        let unitData = isPlayer ? getUnitStats(id) : (ALL_UNITS[id] || ENEMY_UNITS[id]);
+
+        if (team === 'enemy' && !unitData.isMinion && !playerState.seenEnemies.has(id)) {
+            playerState.seenEnemies.add(id);
+            updateCollectionBookBadge();
+            saveGame();
+        }
+        
+        if (options.statMultiplier && options.statMultiplier > 1) {
+            unitData = {
+                ...unitData,
+                hp: Math.round(unitData.hp * options.statMultiplier),
+                atk: Math.round(unitData.atk * options.statMultiplier)
+            };
+        }
+
+        const element = document.createElement('div');
+        element.className = 'unit';
+        element.innerHTML = `<div>${unitData.icon}</div><div class="unit-health-bar"><div class="unit-health-bar-inner"></div></div>`;
+        const unitInstance = { id, team, element, instanceId: battleState.nextInstanceId++, currentTargetId: null, hp: unitData.hp, maxHp: unitData.hp, x: spawnX !== null ? spawnX : (isPlayer ? 100 : 700), isMoving: true, spawnTime: performance.now(), barrier: unitData.barrier || 0, };
+        document.getElementById('battlefield').appendChild(element);
+        if (isPlayer) battleState.playerUnits.push(unitInstance);
+        else battleState.enemyUnits.push(unitInstance);
+    }
+    
     function removeUnit(unitToRemove) { if (unitToRemove.element) unitToRemove.element.remove(); if (unitToRemove.team === 'player') battleState.playerUnits = battleState.playerUnits.filter(u => u.instanceId !== unitToRemove.instanceId); else battleState.enemyUnits = battleState.enemyUnits.filter(u => u.instanceId !== unitToRemove.instanceId); }
-    function endGame(isVictory) { battleState.isGameOver = true; cancelAnimationFrame(gameLoopId); const overlay = document.getElementById('game-over-overlay'); const title = document.getElementById('game-over-title'); const rewardText = document.getElementById('game-over-reward'); const treasureDropText = document.getElementById('game-over-treasure-drop'); treasureDropText.innerHTML = ''; if (isVictory) { const stage = STAGE_CONFIG[battleState.stageId]; let reward = stage.reward; let xpMultiplier = 1; if (playerState.treasures['dark_crown']) xpMultiplier = TREASURES['dark_crown'].effect.value; const finalXp = Math.round(reward.xp * xpMultiplier); playerState.catFood += reward.food; playerState.xp += finalXp; title.textContent = "勝利！"; let extraRewards = []; if (stage.stoneDrop && Math.random() < stage.stoneDrop.chance) { const amount = stage.stoneDrop.amount; playerState.magicStones += amount; extraRewards.push(`💎x${amount}`); } rewardText.textContent = `獲得 🥫x${reward.food}, 🌟x${finalXp}` + (extraRewards.length > 0 ? `, ${extraRewards.join(', ')}` : ''); updateMissionProgress('win_stages', 1); if (stage.treasureDrop && !playerState.treasures[stage.treasureDrop.id] && Math.random() < stage.treasureDrop.chance) { const treasureId = stage.treasureDrop.id; playerState.treasures[treasureId] = true; const treasure = TREASURES[treasureId]; treasureDropText.innerHTML = `✨ 獲得寶物：${treasure.name} ${treasure.icon} ✨`; } updateTopBar(); saveGame(); } else { title.textContent = "失敗..."; rewardText.textContent = `再接再厲！`; } overlay.classList.add('active'); }
+    
+    function endGame(isVictory) {
+        battleState.isGameOver = true;
+        cancelAnimationFrame(gameLoopId);
+        const survivalTimer = document.getElementById('survival-timer');
+        if (survivalTimer) {
+            survivalTimer.style.display = 'none';
+        }
+        const overlay = document.getElementById('game-over-overlay');
+        const title = document.getElementById('game-over-title');
+        const rewardText = document.getElementById('game-over-reward');
+        const treasureDropText = document.getElementById('game-over-treasure-drop');
+        treasureDropText.innerHTML = '';
+
+        if (battleState.isEndlessMode) {
+            const survivalTime = Math.floor(battleState.gameTime / 1000);
+            const config = battleState.endless.config;
+            const foodReward = Math.floor(survivalTime * config.rewardPerSecond.food);
+            const xpReward = Math.floor(survivalTime * config.rewardPerSecond.xp);
+
+            const currentRecord = playerState.specialStageRecords[battleState.stageId] || 0;
+            if (survivalTime > currentRecord) {
+                playerState.specialStageRecords[battleState.stageId] = survivalTime;
+                showToast(`新紀錄！你存活了 ${survivalTime} 秒！`);
+            }
+
+            playerState.catFood += foodReward;
+            playerState.xp += xpReward;
+
+            title.textContent = "挑戰結束";
+            rewardText.innerHTML = `你存活了 <b>${survivalTime}</b> 秒！<br>獲得 🥫x${foodReward}, 🌟x${xpReward}`;
+            updateTopBar();
+            saveGame();
+            overlay.classList.add('active');
+            return;
+        }
+        
+        if (isVictory) {
+            const stage = STAGE_CONFIG[battleState.stageId];
+            let reward = stage.reward;
+            let xpMultiplier = 1;
+            if (playerState.treasures['dark_crown']) xpMultiplier = TREASURES['dark_crown'].effect.value;
+            const finalXp = Math.round(reward.xp * xpMultiplier);
+            playerState.catFood += reward.food;
+            playerState.xp += finalXp;
+            title.textContent = "勝利！";
+            let extraRewards = [];
+            if (stage.stoneDrop && Math.random() < stage.stoneDrop.chance) {
+                const amount = stage.stoneDrop.amount;
+                playerState.magicStones += amount;
+                extraRewards.push(`💎x${amount}`);
+            }
+            rewardText.textContent = `獲得 🥫x${reward.food}, 🌟x${finalXp}` + (extraRewards.length > 0 ? `, ${extraRewards.join(', ')}` : '');
+            updateMissionProgress('win_stages', 1);
+            if (stage.treasureDrop && !playerState.treasures[stage.treasureDrop.id] && Math.random() < stage.treasureDrop.chance) {
+                const treasureId = stage.treasureDrop.id;
+                playerState.treasures[treasureId] = true;
+                const treasure = TREASURES[treasureId];
+                treasureDropText.innerHTML = `✨ 獲得寶物：${treasure.name} ${treasure.icon} ✨`;
+            }
+            updateTopBar();
+            saveGame();
+        } else {
+            title.textContent = "失敗...";
+            rewardText.textContent = `再接再厲！`;
+        }
+        overlay.classList.add('active');
+    }
+
     function togglePause(pause) { battleState.isPaused = pause; document.getElementById('pause-overlay').style.display = pause ? 'flex' : 'none'; if (pause) { cancelAnimationFrame(gameLoopId); } else { battleState.lastFrameTime = performance.now(); gameLoopId = requestAnimationFrame(gameLoop); } }
     function quitBattle() { battleState.isGameOver = true; cancelAnimationFrame(gameLoopId); togglePause(false); switchScreen('hub-screen'); }
-    function fireCatCannon() { if (battleState.catCannonCharge < battleState.catCannonMaxCharge || battleState.isPaused || battleState.isGameOver) return; const cannonStats = battleState.catCannonData; battleState.catCannonCharge = 0; updateCannonUI(); const laser = document.createElement('div'); laser.className = 'cannon-laser'; document.getElementById('battlefield').appendChild(laser); setTimeout(() => laser.remove(), 300); // --- 這是修改後的正確程式碼 ---
-battleState.enemyUnits.forEach(enemy => {
-    if (enemy.hp > 0) {
-        dealDamage(enemy, cannonStats.damage, false, null, {}, performance.now());
-        const stillAliveEnemy = findUnitByInstanceId(enemy.instanceId);
-        if (stillAliveEnemy) {
-            stillAliveEnemy.x += cannonStats.knockback; // <--- 將 -= 修改為 +=
-            if (stillAliveEnemy.x > 700) stillAliveEnemy.x = 700; // <--- 將邊界檢查改為右側邊界
-        }
+    function fireCatCannon() { 
+        if (battleState.catCannonCharge < battleState.catCannonMaxCharge || battleState.isPaused || battleState.isGameOver) return; 
+        const cannonStats = battleState.catCannonData; 
+        battleState.catCannonCharge = 0; 
+        updateCannonUI(); 
+        const laser = document.createElement('div'); 
+        laser.className = 'cannon-laser'; 
+        document.getElementById('battlefield').appendChild(laser); 
+        setTimeout(() => laser.remove(), 300); 
+        battleState.enemyUnits.forEach(enemy => {
+            if (enemy.hp > 0) {
+                dealDamage(enemy, cannonStats.damage, false, null, {}, performance.now());
+                const stillAliveEnemy = findUnitByInstanceId(enemy.instanceId);
+                if (stillAliveEnemy) {
+                    stillAliveEnemy.x += cannonStats.knockback;
+                    if (stillAliveEnemy.x > 700) stillAliveEnemy.x = 700;
+                }
+            }
+        });
+        updateUnitsPosition(); 
     }
-}); updateUnitsPosition(); }
     function updateCannonUI() { const btn = document.getElementById('fire-cannon-btn'); const chargeBar = document.getElementById('cannon-charge-bar'); const chargePercentage = Math.min(100, (battleState.catCannonCharge / battleState.catCannonMaxCharge) * 100); chargeBar.style.height = `${chargePercentage}%`; btn.classList.toggle('disabled', chargePercentage < 100); }
     function updateBattleMoneyUI() { const moneyConfig = battleState.moneyLevelConfig[battleState.moneyLevel]; document.querySelector('#money-display').textContent = `金錢: $${battleState.money} / ${moneyConfig.max}`; document.querySelector('#money-level-display').textContent = `錢包 Lv: ${battleState.moneyLevel + 1}`; const upgradeBtn = document.getElementById('upgrade-money-btn'); const nextLevelConfig = battleState.moneyLevelConfig[battleState.moneyLevel + 1]; if (nextLevelConfig && nextLevelConfig.cost !== Infinity) { upgradeBtn.textContent = `升級 ($${nextLevelConfig.cost})`; upgradeBtn.classList.toggle('disabled', battleState.money < nextLevelConfig.cost); } else { upgradeBtn.textContent = '已滿級'; upgradeBtn.classList.add('disabled'); } document.querySelectorAll('.deploy-button').forEach(btn => { btn.classList.toggle('disabled', battleState.money < parseInt(btn.dataset.cost)); }); }
     function handleUpgradeMoney() { const nextLevel = battleState.moneyLevel + 1; const nextLevelConfig = battleState.moneyLevelConfig[nextLevel]; if (nextLevelConfig) { const cost = nextLevelConfig.cost; if (battleState.money >= cost) { battleState.money -= cost; battleState.moneyLevel = nextLevel; updateBattleMoneyUI(); } } }
@@ -569,7 +1111,6 @@ battleState.enemyUnits.forEach(enemy => {
     function init() { 
         loadGame(); 
         setupEventListeners(); 
-        updateTopBar(); 
         switchScreen('start-screen');
         checkForIOS();
     }
