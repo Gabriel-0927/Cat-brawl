@@ -6,13 +6,12 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
 @keyframes hit-effect-anim { from { transform: scale(1.5); opacity: 1; } to { transform: scale(2.5); opacity: 0; } }
 @keyframes heal-effect-anim { 0% { opacity: 1; transform: translateY(0px) scale(1); } 100% { opacity: 0; transform: translateY(-20px) scale(1.2); } }
 @keyframes gacha-pulse { from { transform: scale(0.9); box-shadow: 0 0 30px 10px #8e2de2; } to { transform: scale(1.1); box-shadow: 0 0 50px 20px #4a00e0; } }
-@keyframes gacha-ssr-pulse { 0% { border-color: #f1c40f; } 50% { border-color: #fff; } 100% { border-color: #f1c40f; } }
-@keyframes gacha-ur-rainbow { 0% { border-color: #ff3c3c; box-shadow: 0 0 40px #ff3c3c; } 25% { border-color: #fff252; box-shadow: 0 0 40px #fff252; } 50% { border-color: #3cb0ff; box-shadow: 0 0 40px #3cb0ff; } 75% { border-color: #d94dff; box-shadow: 0 0 40px #d94dff; } 100% { border-color: #ff3c3c; box-shadow: 0 0 40px #ff3c3c; } }
 @keyframes level-up-anim { 0% { opacity: 1; transform: translateY(0) scale(1.2); } 100% { opacity: 0; transform: translateY(-30px) scale(1.5); } }
 @keyframes time-stop-anim { 0% { backdrop-filter: invert(0) sepia(0); } 50% { backdrop-filter: invert(1) sepia(100%); } 100% { backdrop-filter: invert(0) sepia(0); } }
 @keyframes blink-anim { 50% { opacity: 0.3; } }
 @keyframes freeze-in-anim { from { transform: translate(-50%, -50%) scale(0.5) rotate(-90deg); opacity: 0; } to { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.8; } }
 @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes screen-flash-anim { 0%, 100% { background-color: rgba(255, 255, 255, 0); } 50% { background-color: rgba(255, 255, 255, 0.5); } }
 #ios-guide-overlay { z-index: 999; }
 #ios-guide-overlay .modal-content { width: 400px; text-align: left; }
 #ios-guide-overlay h3 { margin-top: 0; text-align: center; }
@@ -69,10 +68,12 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
 #gacha-results { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 80%; min-height: 150px; margin-top: 20px; padding: 10px; background-color: rgba(255,255,255,0.1); border-radius: 10px; }
 #gacha-pull-buttons button { background: linear-gradient(145deg, #9b59b6, #8e44ad); border-bottom-color: #6c3483; }
 #gacha-current-food { position: absolute; top: 20px; right: 20px; font-size: 18px; font-weight: bold; background-color: rgba(0,0,0,0.3); color: white; padding: 8px 12px; border-radius: 10px; }
-#gacha-animation-overlay { display: none; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); z-index: 100; }
-#gacha-gate { width: 250px; height: 250px; border-radius: 50%; background-color: #4a00e0; animation: gacha-pulse 2s infinite alternate; }
-#gacha-gate.ssr-mode { border: 5px solid #f1c40f; animation: gacha-ssr-pulse 1s infinite; }
-#gacha-gate.ur-mode { border: 10px solid white; animation: gacha-ur-rainbow 2s infinite linear; }
+#gacha-animation-overlay { display: none; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); z-index: 100; transition: background-color 0.5s; }
+#gacha-animation-overlay.screen-flash { animation: screen-flash-anim 0.5s ease-in-out; }
+#gacha-animation-overlay.overlay-ssr-glow { background-color: rgba(100, 80, 0, 0.7); }
+#gacha-animation-overlay.overlay-ur-glow { background: radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(50,0,70,0.8) 100%); }
+#gacha-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 101; pointer-events: none; }
+#gacha-gate { width: 250px; height: 250px; border-radius: 50%; background-color: #4a00e0; animation: gacha-pulse 2s infinite alternate; z-index: 102; }
 #collection-screen { justify-content: flex-start; align-items: stretch; background-color: #e0f7fa; padding: 60px 20px 20px 20px; overflow: hidden; }
 #deck-management-area { width: 100%; height: 100%; display: flex; flex-direction: column; }
 #current-deck-container h3, #owned-units-container h3 { margin: 0 0 10px 0; color: #34495e; border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; }
@@ -562,4 +563,76 @@ body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2
 #gacha-rates-modal-content #gacha-rates-summary,
 #collection-detail-modal-content h2 {
     flex-shrink: 0;
+}
+
+/* --- Evolution Button Styles --- */
+#modal-evolution-area {
+    margin-top: 15px;
+    width: 100%;
+}
+
+#modal-evolve-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: linear-gradient(145deg, #e94057, #f27121);
+    border-bottom: 3px solid #c03345;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.4;
+}
+
+#modal-evolve-btn:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(242, 113, 33, 0.4);
+}
+
+#modal-evolve-btn:active:not(.disabled) {
+    transform: translateY(1px);
+    border-bottom-width: 1px;
+}
+
+#modal-evolve-btn.disabled {
+    background: #95a5a6;
+    border-bottom-color: #7f8c8d;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.evolve-cost {
+    font-size: 12px;
+    font-weight: normal;
+    opacity: 0.9;
+}
+
+/* --- Collection Detail Evolution Toggle --- */
+#modal-detail-evolution-toggle {
+    margin-top: 15px;
+    border-top: 1px dashed #ccc;
+    padding-top: 15px;
+}
+
+.evolution-toggle-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(145deg, #6c7a89, #4d5a68);
+    border: none;
+    border-bottom: 3px solid #2b3e50;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.evolution-toggle-btn:hover {
+    background: linear-gradient(145deg, #8d99ae, #6c7a89);
 }
